@@ -1,6 +1,5 @@
 {
   "build": {
     "outDir": ".next"
-  },
-  "buildCommand": "next build"
+  }
 }
