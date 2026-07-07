@@ -2,11 +2,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { auth } from '@/lib/firebase/client';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
+import { auth } from '@/lib/firebase/client';
+import { signOut } from 'firebase/auth';
 import Link from 'next/link';
-import { Package, Truck, LogOut } from 'lucide-react';
+import { Package, LogOut } from 'lucide-react';
 
 export default function LivreurLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -54,6 +55,11 @@ export default function LivreurLayout({ children }: { children: React.ReactNode 
     return null;
   }
 
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-100">
       <aside className="w-64 bg-white shadow-lg">
@@ -66,12 +72,7 @@ export default function LivreurLayout({ children }: { children: React.ReactNode 
             <Package size={18} /> Commandes
           </Link>
           <button
-            onClick={() => {
-              import('firebase/auth').then(({ signOut }) => {
-                signOut(import('@/lib/firebase/client').then(m => m.auth));
-                router.push('/login');
-              });
-            }}
+            onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 w-full mt-10"
           >
             <LogOut size={18} /> Déconnexion
@@ -82,4 +83,3 @@ export default function LivreurLayout({ children }: { children: React.ReactNode 
     </div>
   );
 }
-
