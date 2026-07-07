@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import OrderCard from './OrderCard';
 import { Package, RefreshCw } from 'lucide-react';
 
-interface Commande {
+export interface Commande {
   id: string;
   numero: string;
   client: {
@@ -157,3 +157,4 @@ export default function LivreurDashboard() {
     </div>
   );
 }
+

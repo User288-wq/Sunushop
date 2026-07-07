@@ -1,5 +1,5 @@
 'use client';
-import { Commande } from './page';
+import type { Commande } from './page';
 
 interface OrderCardProps {
   commande: Commande;
@@ -70,3 +70,4 @@ export default function OrderCard({ commande, onAction, actionLabel, actionColor
     </div>
   );
 }
+
