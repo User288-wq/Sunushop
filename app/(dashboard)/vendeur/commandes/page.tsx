@@ -25,11 +25,14 @@ export default function MesCommandes() {
 
   useEffect(() => {
     if (!user) return;
-    const loadFirebase = async () => {
+
+    const loadCommandes = async () => {
       try {
-        // Charger Firebase dynamiquement côté client seulement
-        const { db } = await import('@/lib/firebase/client');
+        // Importer le client Firebase safe dynamiquement
+        const { getFirebaseClient } = await import('@/lib/firebase/client-safe');
+        const { db } = await getFirebaseClient();
         const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
+
         const q = query(
           collection(db, 'commandes'),
           where('vendeurId', '==', user.uid),
@@ -40,11 +43,13 @@ export default function MesCommandes() {
         setCommandes(data);
       } catch (err) {
         console.error('Erreur chargement commandes:', err);
+        // Ne pas planter l'UI, juste afficher un message
       } finally {
         setLoading(false);
       }
     };
-    loadFirebase();
+
+    loadCommandes();
   }, [user]);
 
   if (loading) return <div>Chargement...</div>;
