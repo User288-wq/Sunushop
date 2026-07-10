@@ -1,15 +1,13 @@
 import twilio from 'twilio';
 
-// Ne pas initialiser le client Twilio si les variables sont manquantes (ex: pendant le build)
-let client: any = null;
+let clientInstance: any = null;
 let fromNumber: string | undefined = process.env.TWILIO_WHATSAPP_NUMBER;
 
 function getClient() {
-  if (!client) {
+  if (!clientInstance) {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     
-    // Vérifier que les variables sont valides avant d'initialiser
     if (!accountSid || !accountSid.startsWith('AC')) {
       console.warn('⚠️ Twilio non configuré (Account SID manquant ou invalide)');
       return null;
@@ -19,9 +17,9 @@ function getClient() {
       return null;
     }
     
-    client = twilio(accountSid, authToken);
+    clientInstance = twilio(accountSid, authToken);
   }
-  return client;
+  return clientInstance;
 }
 
 export interface WhatsAppMessage {
@@ -30,8 +28,8 @@ export interface WhatsAppMessage {
 }
 
 export async function sendWhatsAppMessage({ to, message }: WhatsAppMessage) {
-  const clientInstance = getClient();
-  if (!clientInstance) {
+  const client = getClient();
+  if (!client) {
     console.warn('⚠️ WhatsApp non envoyé: Twilio non configuré');
     return { success: false, error: 'Twilio non configuré' };
   }
@@ -42,7 +40,7 @@ export async function sendWhatsAppMessage({ to, message }: WhatsAppMessage) {
   }
 
   try {
-    const result = await clientInstance.messages.create({
+    const result = await client.messages.create({
       body: message,
       from: `whatsapp:${fromNumber}`,
       to: `whatsapp:${formattedNumber}`,
