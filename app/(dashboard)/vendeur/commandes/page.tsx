@@ -2,8 +2,6 @@
 export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { db } from '@/lib/firebase/client';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import Link from 'next/link';
 
 interface Commande {
@@ -27,8 +25,11 @@ export default function MesCommandes() {
 
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
+    const loadFirebase = async () => {
       try {
+        // Charger Firebase dynamiquement côté client seulement
+        const { db } = await import('@/lib/firebase/client');
+        const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
         const q = query(
           collection(db, 'commandes'),
           where('vendeurId', '==', user.uid),
@@ -38,12 +39,12 @@ export default function MesCommandes() {
         const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Commande));
         setCommandes(data);
       } catch (err) {
-        console.error(err);
+        console.error('Erreur chargement commandes:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetch();
+    loadFirebase();
   }, [user]);
 
   if (loading) return <div>Chargement...</div>;
