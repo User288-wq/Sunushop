@@ -1,10 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { db } from '@/lib/firebase/client';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import Link from 'next/link';
-
+ const dynamic = 'force-dynamic';\n
 interface Commande {
   id: string;
   numero: string;
@@ -96,3 +91,4 @@ export default function MesCommandes() {
     </div>
   );
 }
+
