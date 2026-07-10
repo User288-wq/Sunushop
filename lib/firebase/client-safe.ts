@@ -1,11 +1,12 @@
-// Ce fichier ne doit être importé QUE dans des composants client
-// Il n'est pas utilisé pendant le build
+// ⚠️ Ce fichier est 100% dynamique – aucun import statique de Firebase
+// Il ne doit être importé que dans des composants client, avec import()
 
 export async function getFirebaseClient() {
   if (typeof window === 'undefined') {
     throw new Error('Firebase ne peut pas être initialisé côté serveur');
   }
 
+  // Tous les imports sont dynamiques
   const { initializeApp, getApps, getApp } = await import('firebase/app');
   const { getAuth, setPersistence, browserLocalPersistence } = await import('firebase/auth');
   const { getFirestore, enableIndexedDbPersistence } = await import('firebase/firestore');

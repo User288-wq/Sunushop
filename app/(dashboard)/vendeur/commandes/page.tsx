@@ -1,7 +1,6 @@
 'use client';
 export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 
 interface Commande {
@@ -19,38 +18,50 @@ interface Commande {
 }
 
 export default function MesCommandes() {
-  const { user } = useAuth();
+  const [user, setUser] = useState<any>(null);
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    let unsubscribe: (() => void) | undefined;
 
-    const loadCommandes = async () => {
+    const init = async () => {
       try {
-        // Importer le client Firebase safe dynamiquement
         const { getFirebaseClient } = await import('@/lib/firebase/client-safe');
-        const { db } = await getFirebaseClient();
+        const { auth, db } = await getFirebaseClient();
+        const { onAuthStateChanged } = await import('firebase/auth');
         const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
 
-        const q = query(
-          collection(db, 'commandes'),
-          where('vendeurId', '==', user.uid),
-          orderBy('createdAt', 'desc')
-        );
-        const snap = await getDocs(q);
-        const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Commande));
-        setCommandes(data);
+        unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+          setUser(currentUser);
+          if (currentUser) {
+            try {
+              const q = query(
+                collection(db, 'commandes'),
+                where('vendeurId', '==', currentUser.uid),
+                orderBy('createdAt', 'desc')
+              );
+              const snap = await getDocs(q);
+              const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Commande));
+              setCommandes(data);
+            } catch (err) {
+              console.error(err);
+            }
+          }
+          setLoading(false);
+        });
       } catch (err) {
-        console.error('Erreur chargement commandes:', err);
-        // Ne pas planter l'UI, juste afficher un message
-      } finally {
+        console.error(err);
         setLoading(false);
       }
     };
 
-    loadCommandes();
-  }, [user]);
+    init();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   if (loading) return <div>Chargement...</div>;
 
