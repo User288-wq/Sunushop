@@ -1,10 +1,28 @@
 import twilio from 'twilio';
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
+// Ne pas initialiser le client Twilio si les variables sont manquantes (ex: pendant le build)
+let client: any = null;
+let fromNumber: string | undefined = process.env.TWILIO_WHATSAPP_NUMBER;
 
-const client = twilio(accountSid, authToken);
+function getClient() {
+  if (!client) {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    
+    // Vérifier que les variables sont valides avant d'initialiser
+    if (!accountSid || !accountSid.startsWith('AC')) {
+      console.warn('⚠️ Twilio non configuré (Account SID manquant ou invalide)');
+      return null;
+    }
+    if (!authToken) {
+      console.warn('⚠️ Twilio non configuré (Auth Token manquant)');
+      return null;
+    }
+    
+    client = twilio(accountSid, authToken);
+  }
+  return client;
+}
 
 export interface WhatsAppMessage {
   to: string;
@@ -12,17 +30,25 @@ export interface WhatsAppMessage {
 }
 
 export async function sendWhatsAppMessage({ to, message }: WhatsAppMessage) {
+  const clientInstance = getClient();
+  if (!clientInstance) {
+    console.warn('⚠️ WhatsApp non envoyé: Twilio non configuré');
+    return { success: false, error: 'Twilio non configuré' };
+  }
+
   let formattedNumber = to;
   if (!to.startsWith('+')) {
     formattedNumber = `+221${to.replace(/^0+/, '')}`;
   }
 
   try {
-    const result = await client.messages.create({
+    const result = await clientInstance.messages.create({
       body: message,
       from: `whatsapp:${fromNumber}`,
       to: `whatsapp:${formattedNumber}`,
-      statusCallback: 'https://www.sunu-shop.org/api/whatsapp/status',
+      statusCallback: process.env.NEXT_PUBLIC_BASE_URL 
+        ? `${process.env.NEXT_PUBLIC_BASE_URL}/api/whatsapp/status` 
+        : undefined,
     });
     console.log(`✅ WhatsApp envoyé à ${to}: ${result.sid}`);
     return { success: true, sid: result.sid };
