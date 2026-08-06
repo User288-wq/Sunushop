@@ -1,23 +1,30 @@
-import './globals.css';
-import Header from '../components/shared/Header';
-import { AuthProvider } from '../context/AuthContext';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from 'react-hot-toast';
+import Header from '@/components/shared/Header';
+import './globals.css';
 
-export const metadata = {
-  title: 'SunuShop - Social commerce sénégalais',
-  description: 'Vendez sur TikTok, recevez les paiements Wave/Orange Money, livrez facilement.',
-  icons: {
-    icon: '/favicon.svg',
-  },
-};
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [isClient, setIsClient] = useState(false);
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   return (
-    <html lang="fr">
-      <body>
+    <html lang="fr" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <AuthProvider>
           <Header />
-          {children}
+          <main className="min-h-screen bg-gray-50">
+            {isClient ? children : null}
+          </main>
           <Toaster position="top-center" />
         </AuthProvider>
       </body>

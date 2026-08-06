@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { db } from '@/lib/firebase/client';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 
 interface Commande {
   id: string;
@@ -23,26 +25,16 @@ export default function CommandeList() {
   useEffect(() => {
     const loadCommandes = async () => {
       try {
-        const { getFirebaseClient } = await import('@/lib/firebase/client-safe');
-        const { auth, db } = await getFirebaseClient();
-        const { onAuthStateChanged } = await import('firebase/auth');
-        const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
-
-        onAuthStateChanged(auth, async (user) => {
-          if (user) {
-            const q = query(
-              collection(db, 'commandes'),
-              where('vendeurId', '==', user.uid),
-              orderBy('createdAt', 'desc')
-            );
-            const snap = await getDocs(q);
-            const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Commande));
-            setCommandes(data);
-          }
-          setLoading(false);
-        });
+        const q = query(
+          collection(db, 'commandes'),
+          orderBy('createdAt', 'desc')
+        );
+        const snap = await getDocs(q);
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Commande));
+        setCommandes(data);
       } catch (err) {
         console.error(err);
+      } finally {
         setLoading(false);
       }
     };
