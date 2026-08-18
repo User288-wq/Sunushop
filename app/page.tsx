@@ -1,12 +1,10 @@
 "use client";
-
 import Link from "next/link";
 import { useWhatsApp } from "@/context/WhatsAppContext";
+import { useLogger } from "@/lib/logger/logger";
 import JsonLd from "@/components/JsonLd";
-
 export default function HomePage() {
   const { isConnected } = useWhatsApp();
-
   const jsonLdData = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -19,7 +17,6 @@ export default function HomePage() {
       "query-input": "required name=search_term_string"
     }
   };
-
   return (
     <>
       <JsonLd data={jsonLdData} />
@@ -30,23 +27,19 @@ export default function HomePage() {
             <div className="absolute top-20 left-10 w-72 h-72 bg-green-400 rounded-full mix-blend-multiply filter blur-3xl animate-float" />
             <div className="absolute bottom-20 right-10 w-96 h-96 bg-emerald-400 rounded-full mix-blend-multiply filter blur-3xl animate-float" style={{ animationDelay: "2s" }} />
           </div>
-
           <div className="max-w-7xl mx-auto px-4 relative">
             <div className="text-center max-w-3xl mx-auto animate-fade-up">
               <div className="inline-block bg-green-100 dark:bg-green-900/30 p-4 rounded-full mb-6 animate-float">
                 <span className="text-5xl">🇸🇳</span>
               </div>
-              
               <h1 className="text-4xl md:text-6xl font-bold text-gray-800 dark:text-white mb-6">
                 La marketplace qui <br />
                 <span className="gradient-text">connecte les vendeurs</span>
               </h1>
-              
               <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
                 Vendez sur TikTok, Facebook et WhatsApp avec un système organisé.
                 Paiements Wave, Orange Money ou à la livraison.
               </p>
-
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/preinscription"
@@ -61,7 +54,6 @@ export default function HomePage() {
                   📤 Vendre maintenant
                 </Link>
               </div>
-
               <div className="mt-8 flex items-center justify-center gap-8 text-sm text-gray-500 dark:text-gray-400">
                 <span className="flex items-center gap-2">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -73,7 +65,6 @@ export default function HomePage() {
                 <span>🚚 Livraison express</span>
               </div>
             </div>
-
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 max-w-3xl mx-auto animate-fade-up" style={{ animationDelay: "0.4s" }}>
               <div className="text-center">
@@ -91,14 +82,12 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
         {/* Features */}
         <section className="py-16 bg-white dark:bg-gray-800">
           <div className="max-w-7xl mx-auto px-4">
             <h2 className="text-3xl font-bold text-center text-gray-800 dark:text-white mb-12">
               Pourquoi choisir SunuShop ?
             </h2>
-
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[
                 {
@@ -141,7 +130,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
         {/* CTA */}
         <section className="py-16 bg-gradient-to-r from-green-600 to-emerald-600">
           <div className="max-w-3xl mx-auto px-4 text-center">
@@ -163,3 +151,7 @@ export default function HomePage() {
     </>
   );
 }
+
+
+
+

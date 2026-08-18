@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger/logger';
 
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || 'http://localhost:8080';
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || '';
@@ -6,9 +7,7 @@ const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'sunushop';
 
 export async function GET() {
   try {
-    console.log('[Status] URL:', EVOLUTION_API_URL);
-    console.log('[Status] Key:', EVOLUTION_API_KEY ? 'Définie' : 'Manquante');
-    console.log('[Status] Instance:', EVOLUTION_INSTANCE);
+    logger.info(`Vérification du statut WhatsApp pour ${EVOLUTION_INSTANCE}`, { instance: EVOLUTION_INSTANCE }, 'WhatsAppStatus');
 
     const response = await fetch(
       `${EVOLUTION_API_URL}/instance/connectionState/${EVOLUTION_INSTANCE}`,
@@ -21,7 +20,7 @@ export async function GET() {
     );
 
     if (!response.ok) {
-      console.log('[Status] Response not OK:', response.status);
+      logger.warn(`Erreur statut WhatsApp: ${response.status}`, { status: response.status }, 'WhatsAppStatus');
       return NextResponse.json(
         { error: 'Impossible de récupérer le statut' },
         { status: 500 }
@@ -29,7 +28,8 @@ export async function GET() {
     }
 
     const data = await response.json();
-    console.log('[Status] Success:', data);
+    logger.info(`Statut WhatsApp: ${data.instance?.state}`, { state: data.instance?.state }, 'WhatsAppStatus');
+    
     return NextResponse.json({
       success: true,
       status: data.instance?.state || 'unknown',
@@ -37,7 +37,7 @@ export async function GET() {
       data,
     });
   } catch (error: any) {
-    console.error('[Status] Catch error:', error?.message || error);
+    logger.error(`Erreur statut WhatsApp: ${error.message}`, { error: error.message, stack: error.stack }, 'WhatsAppStatus');
     return NextResponse.json(
       { error: 'Erreur serveur' },
       { status: 500 }
