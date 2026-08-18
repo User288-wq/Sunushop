@@ -1,50 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initWavePayment, initCinetPayPayment } from '@/lib/payment';
+import { paymentService } from '@/lib/payment/payment-service';
 
 export async function POST(req: NextRequest) {
   try {
-    const { method, orderId, amount, customerPhone, customerEmail, customerName } = await req.json();
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const returnUrl = `${baseUrl}/payment/status?commandeId=${orderId}`;
-    const notifyUrl = `${baseUrl}/api/payment/webhook/cinetpay`;
+    const { amount, phoneNumber, method, orderId, description } = await req.json();
 
-    let paymentResult;
-    if (method === 'wave') {
-      paymentResult = await initWavePayment({
-        amount,
-        currency: 'XOF',
-        orderId,
-        customerPhone,
-        customerEmail,
-        customerName,
-        description: `Paiement SunuShop commande ${orderId}`,
-        returnUrl,
-        notifyUrl,
-      });
-    } else if (method === 'orange_money') {
-      paymentResult = await initCinetPayPayment({
-        amount,
-        currency: 'XOF',
-        orderId,
-        customerPhone,
-        customerEmail,
-        customerName,
-        description: `Paiement SunuShop commande ${orderId}`,
-        returnUrl,
-        notifyUrl,
-      });
-    } else {
-      return NextResponse.json({ error: 'Mode de paiement non supporté' }, { status: 400 });
+    if (!amount || amount <= 0) {
+      return NextResponse.json({ error: 'Montant invalide' }, { status: 400 });
     }
 
-    if (paymentResult.success) {
-      // Optionnel : sauvegarder paymentSessionId dans Firestore
-      return NextResponse.json({ success: true, paymentUrl: paymentResult.paymentUrl });
-    } else {
-      return NextResponse.json({ error: paymentResult.error }, { status: 500 });
+    if (!phoneNumber) {
+      return NextResponse.json({ error: 'Numéro de téléphone requis' }, { status: 400 });
     }
-  } catch (error) {
-    console.error('API Payment Init Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+
+    if (!method) {
+      return NextResponse.json({ error: 'Méthode de paiement requise' }, { status: 400 });
+    }
+
+    if (!orderId) {
+      return NextResponse.json({ error: 'ID de commande requis' }, { status: 400 });
+    }
+
+    const result = await paymentService.initiatePayment({
+      amount,
+      phoneNumber,
+      method,
+      orderId,
+      description: description || `Commande #${orderId}`,
+    });
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error || 'Erreur de paiement' }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('❌ Erreur paiement:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

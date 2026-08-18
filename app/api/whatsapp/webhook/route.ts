@@ -1,181 +1,145 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
+import { saveWhatsAppMessage } from '@/lib/whatsapp/messages';
+import { findAutoReply } from '@/lib/whatsapp/auto-reply';
+import { getChatbotResponse } from '@/lib/whatsapp/chatbot';
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || "http://localhost:8080";
-const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || "429683C4C977415CAAFCCE10F7D57E11";
-const INSTANCE = process.env.EVOLUTION_INSTANCE || "sunushop";
-
-// Anti-spam mémoire
-const lastReplyAt = new Map<string, number>();
-const REPLY_COOLDOWN_MS = 60000;
-
-function extractText(message: any): string {
-  if (!message) return "";
-  return (
-    message.conversation ||
-    message.extendedTextMessage?.text ||
-    message.imageMessage?.caption ||
-    message.videoMessage?.caption ||
-    ""
-  );
-}
-
-function jidToNumber(jid: string): string {
-  return String(jid || "")
-    .replace("@s.whatsapp.net", "")
-    .replace(/@lid$/, "")
-    .replace(/\D/g, "");
-}
-
-async function sendText(number: string, text: string) {
-  const url = EVOLUTION_URL + "/message/sendText/" + INSTANCE;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      apikey: EVOLUTION_KEY,
-      "Content-Type": "application/json",
-      "ngrok-skip-browser-warning": "true",
-    },
-    body: JSON.stringify({ number, text }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    console.error("[auto-reply] send failed", res.status, data);
-    return null;
-  }
-  return data;
-}
-
-function buildReply(name: string, incoming: string): string {
-  const lower = incoming.toLowerCase().trim();
-  const site = "www.sunu-shop.org";
-
-  if (lower.includes("prix") || lower.includes("tarif")) {
-    return "Bonjour " + name + " ! Pour les tarifs SunuShop, precisez le produit ou visitez https://" + site;
-  }
-  if (lower.includes("bonjour") || lower.includes("salut") || lower.includes("hi")) {
-    return "Bonjour " + name + " ! Bienvenue sur SunuShop (" + site + "). Comment pouvons-nous vous aider ?";
-  }
-  if (lower.includes("commande") || lower.includes("order")) {
-    return "Bonjour " + name + " ! Pour suivre une commande, indiquez le numero. Consultez https://" + site + "/suivi";
-  }
-  if (lower.includes("catalogue")) {
-    return "Bonjour " + name + " ! Découvrez notre catalogue sur https://" + site + "/catalogue";
-  }
-  if (lower.includes("contact") || lower.includes("adresse")) {
-    return "Bonjour " + name + " ! Contact: +221 78 014 30 70 | Site: https://" + site;
-  }
-
-  return "Bonjour " + name + " ! Message bien recu sur SunuShop (" + site + "). Un conseiller vous repondra bientot.";
-}
+const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || 'http://localhost:8080';
+const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || '';
+const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'sunushop';
+const USE_CHATBOT = process.env.USE_CHATBOT === 'true';
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: "whatsapp-webhook" });
+  return NextResponse.json({
+    ok: true,
+    service: 'whatsapp-webhook',
+    status: 'active',
+    timestamp: new Date().toISOString(),
+  });
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const event = String(body.event || "");
-    const data = body.data ?? {};
 
-    // === DEBUG: Vue d'ensemble ===
-    console.log("[webhook] 📨 keys=", Object.keys(body));
-    console.log("[webhook] 🏷️ event=", event);
-    console.log("[webhook] 📦 instance=", body.instance);
+    console.log('[Webhook] 📨 Message reçu:', JSON.stringify(body, null, 2));
 
-    // === DEBUG: Payload complet (dev uniquement) ===
-    console.log("[webhook] 📄 FULL=", JSON.stringify(body, null, 2));
-
-    // === DEBUG: Structure ciblée ===
-    if (event.includes("upsert") || event === "MESSAGES_UPSERT") {
-      console.log("[webhook] 🔍 UPSERT:", {
-        fromMe: data.key?.fromMe,
-        remoteJid: data.key?.remoteJid,
-        pushName: data.pushName,
-        messageType: data.messageType,
-        messageKeys: data.message ? Object.keys(data.message) : [],
-        text:
-          data.message?.conversation ||
-          data.message?.extendedTextMessage?.text ||
-          null,
-      });
+    const jid = body?.data?.key?.remoteJid || body?.remoteJid || '';
+    if (typeof jid === 'string' && jid.endsWith('@g.us')) {
+      console.log('[Webhook] 📨 Message de groupe ignoré');
+      return NextResponse.json({ received: true, skipped: 'group' });
     }
 
-    if (event.includes("update") || event === "MESSAGES_UPDATE") {
-      console.log("[webhook] 🔄 UPDATE:", {
-        keyId: data.keyId,
-        remoteJid: data.remoteJid,
-        fromMe: data.fromMe,
-        status: data.status,
+    const event = String(body?.event || body?.type || '');
+    const data = body?.data || body;
+
+    if (event.includes('MESSAGES_UPSERT') || event.includes('messages.upsert')) {
+      const text =
+        data?.message?.conversation ??
+        data?.message?.extendedTextMessage?.text ??
+        data?.message?.imageMessage?.caption ??
+        null;
+
+      const fromMe = Boolean(data?.key?.fromMe);
+      const senderJid = data?.key?.remoteJid || '';
+      const messageId = data?.key?.id || '';
+      const messageType = data?.messageType || 'conversation';
+
+      console.log('[Webhook] 📨 Message:', {
+        from: senderJid,
+        fromMe,
+        text: text?.slice(0, 100),
+        event,
+        messageId,
       });
-    }
 
-    if (event.includes("send") || event === "SEND_MESSAGE") {
-      console.log("[webhook] 📤 SEND:", {
-        to: data.key?.remoteJid,
-        fromMe: data.key?.fromMe,
-        status: data.status,
-        messageType: data.messageType,
-      });
-    }
-
-    if (event.includes("connection") || event === "CONNECTION_UPDATE") {
-      console.log("[webhook] 🔌 CONNECTION:", {
-        state: data.state,
-        info: data.info,
-      });
-    }
-
-    // === TRAITEMENT ===
-    if (event === "messages.upsert" || event === "MESSAGES_UPSERT") {
-      const key = data.key || {};
-      const fromMe = Boolean(key.fromMe);
-      const remoteJid = String(key.remoteJid || "");
-
-      if (remoteJid.endsWith("@g.us")) {
-        return NextResponse.json({ received: true, skipped: "group" });
+      // Sauvegarder le message
+      if (text && senderJid) {
+        await saveWhatsAppMessage({
+          senderJid,
+          text: text,
+          fromMe,
+          messageType,
+          messageId,
+          status: fromMe ? 'sent' : 'delivered',
+          timestamp: new Date(),
+        });
       }
 
-      const text = extractText(data.message);
-      const name = data.pushName || "Client";
-      const number = jidToNumber(remoteJid);
+      // 🤖 RÉPONSE AUTOMATIQUE - uniquement pour les messages entrants
+      if (!fromMe && text) {
+        let reply: string | null = null;
 
-      if (!fromMe && text && number) {
-        console.log("[IN]", name, number, text);
+        // 1. Essayer d'abord les règles prédéfinies
+        reply = findAutoReply(text);
+        console.log('[Webhook] 🤖 Règle trouvée:', reply ? 'Oui' : 'Non');
 
-        const now = Date.now();
-        const last = lastReplyAt.get(number) || 0;
-        if (now - last >= REPLY_COOLDOWN_MS) {
-          lastReplyAt.set(number, now);
-          const reply = buildReply(name, text);
-          await sendText(number, reply);
-          console.log("[AUTO-REPLY]", number, reply);
-        } else {
-          console.log("[AUTO-REPLY] cooldown", number);
+        // 2. Si pas de règle, utiliser le chatbot IA
+        if (!reply && USE_CHATBOT) {
+          console.log('[Webhook] 🤖 Utilisation du chatbot IA...');
+          const userId = senderJid.replace('@s.whatsapp.net', '');
+          reply = await getChatbotResponse(text, userId);
+          console.log('[Webhook] 🤖 Réponse IA:', reply);
         }
-      } else if (fromMe) {
-        console.log("[OUT]", number, text);
+
+        // 3. Si toujours pas de réponse, utiliser le fallback
+        if (!reply) {
+          reply = "🤖 Je suis l'assistant de SunuShop. Je peux vous aider avec les prix, les commandes, la livraison ou les paiements. Que puis-je faire pour vous ?";
+        }
+
+        // Envoyer la réponse
+        if (reply) {
+          try {
+            const response = await fetch(
+              `${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
+              {
+                method: 'POST',
+                headers: {
+                  apikey: EVOLUTION_API_KEY,
+                  'Content-Type': 'application/json',
+                  'ngrok-skip-browser-warning': 'true',
+                },
+                body: JSON.stringify({
+                  number: senderJid.replace('@s.whatsapp.net', ''),
+                  text: reply,
+                }),
+              }
+            );
+
+            if (response.ok) {
+              const result = await response.json();
+              console.log('[Webhook] 🤖 Réponse envoyée avec succès:', result);
+            } else {
+              console.error('[Webhook] ❌ Erreur envoi réponse:', response.status);
+            }
+          } catch (error) {
+            console.error('[Webhook] ❌ Erreur réseau:', error);
+          }
+        }
       }
-    }
 
-    if (event === "messages.update" || event === "MESSAGES_UPDATE") {
-      console.log("[STATUS]", data.status, data.remoteJid || data.keyId);
-    }
+    } else if (event.includes('MESSAGES_UPDATE') || event.includes('messages.update')) {
+      console.log('[Webhook] 📨 Mise à jour message:', {
+        status: data?.status,
+        jid: data?.key?.remoteJid,
+      });
 
-    if (event === "send.message" || event === "SEND_MESSAGE") {
-      console.log("[SEND]", data.status, data.key?.remoteJid);
-    }
+    } else if (event.includes('CONNECTION_UPDATE')) {
+      console.log('[Webhook] 📨 Connexion mise à jour:', {
+        state: data?.state,
+        instance: data?.instance,
+      });
 
-    if (event === "connection.update" || event === "CONNECTION_UPDATE") {
-      console.log("[CONN]", data.state || data);
+    } else {
+      console.log('[Webhook] 📨 Événement non géré:', event);
     }
 
     return NextResponse.json({ received: true });
-  } catch (e) {
-    console.error("[webhook] ❌ ERROR:", e);
-    return NextResponse.json({ received: false }, { status: 200 });
+
+  } catch (error: any) {
+    console.error('[Webhook] ❌ Erreur:', error?.message || error);
+    return NextResponse.json(
+      { received: false, error: 'handler_error' },
+      { status: 200 }
+    );
   }
 }

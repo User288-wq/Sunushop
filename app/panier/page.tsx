@@ -1,64 +1,189 @@
-'use client';
-import { useCart } from '../../hooks/useCart';
-import Link from 'next/link';
-import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+interface CartItem {
+  id: string;
+  title: string;
+  price: number;
+  image: string;
+  quantity: number;
+  sellerId?: string;
+}
 
 export default function PanierPage() {
-  const { items, removeItem, updateQuantity, getTotal, clearCart } = useCart();
-  const total = getTotal();
-  const fraisLivraison = total > 5000 ? 0 : 1000;
-  const totalFinal = total + fraisLivraison;
+  const router = useRouter();
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  if (items.length === 0) {
+  useEffect(() => {
+    const savedCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    setCart(savedCart);
+    calculateTotal(savedCart);
+  }, []);
+
+  const calculateTotal = (items: CartItem[]) => {
+    const sum = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    setTotal(sum);
+  };
+
+  const updateQuantity = (id: string, quantity: number) => {
+    if (quantity < 1) return;
+    const newCart = cart.map(item => 
+      item.id === id ? { ...item, quantity } : item
+    );
+    setCart(newCart);
+    localStorage.setItem('cart', JSON.stringify(newCart));
+    calculateTotal(newCart);
+    window.dispatchEvent(new Event('cartUpdated'));
+  };
+
+  const removeItem = (id: string) => {
+    const newCart = cart.filter(item => item.id !== id);
+    setCart(newCart);
+    localStorage.setItem('cart', JSON.stringify(newCart));
+    calculateTotal(newCart);
+    window.dispatchEvent(new Event('cartUpdated'));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    localStorage.setItem('cart', '[]');
+    setTotal(0);
+    window.dispatchEvent(new Event('cartUpdated'));
+  };
+
+  const handleCheckout = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      // Créer la commande
+      const orderData = {
+        items: cart,
+        total: total,
+        client: {
+          name: "Client",
+          phone: "221785387999",
+        },
+        delivery: {
+          address: "Dakar, Sénégal",
+        },
+      };
+
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Erreur lors de la commande");
+      }
+
+      // Rediriger vers la page de paiement
+      router.push(`/payment?orderId=${data.order.id}`);
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (cart.length === 0) {
     return (
-      <main className="max-w-4xl mx-auto px-4 py-12 text-center">
-        <ShoppingBag className="w-20 h-20 mx-auto text-gray-300 mb-4" />
-        <h1 className="text-2xl font-bold mb-2">Votre panier est vide</h1>
-        <p className="text-gray-500 mb-6">Ajoutez des produits depuis la page d'accueil</p>
-        <Link href="/" className="bg-green-600 text-white px-6 py-2 rounded-lg inline-block">Découvrir les produits</Link>
-      </main>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="card p-12 text-center">
+            <div className="text-6xl mb-4">🛒</div>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Panier vide</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">Votre panier est actuellement vide.</p>
+            <Link href="/" className="inline-block mt-4 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+              🛍️ Commencer les achats
+            </Link>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <main className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Mon panier ({items.length} articles)</h1>
-      <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-4">
-          {items.map((item) => (
-            <div key={item.produitId} className="flex gap-4 bg-white p-4 rounded-lg shadow">
-              <img src={item.photo || 'https://placehold.co/100x100'} alt={item.titre} className="w-20 h-20 object-cover rounded" />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">🛒 Mon panier</h1>
+          <button
+            onClick={clearCart}
+            className="px-4 py-2 text-sm text-red-600 hover:text-red-700 transition"
+          >
+            🗑️ Vider le panier
+          </button>
+        </div>
+
+        {error && (
+          <div className="p-4 mb-4 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-400">
+            ❌ {error}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {cart.map((item) => (
+            <div key={item.id} className="card p-4 flex items-center gap-4">
+              <img
+                src={item.image || "https://via.placeholder.com/80/22c55e/ffffff?text=Produit"}
+                alt={item.title}
+                className="w-20 h-20 object-cover rounded-lg"
+              />
               <div className="flex-1">
-                <h3 className="font-semibold">{item.titre}</h3>
-                <p className="text-green-600 font-bold">{item.prix.toLocaleString()} FCFA</p>
-                <p className="text-xs text-gray-400">{item.boutiqueNom}</p>
+                <h3 className="font-medium text-gray-800 dark:text-white">{item.title}</h3>
+                <p className="text-green-600 font-bold">{item.price.toLocaleString()} FCFA</p>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => updateQuantity(item.produitId, item.quantite - 1)} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200"><Minus className="w-4 h-4" /></button>
-                <span className="w-8 text-center">{item.quantite}</span>
-                <button onClick={() => updateQuantity(item.produitId, item.quantite + 1)} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200"><Plus className="w-4 h-4" /></button>
+                <button
+                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                  className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition flex items-center justify-center"
+                >
+                  -
+                </button>
+                <span className="w-8 text-center font-medium">{item.quantity}</span>
+                <button
+                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition flex items-center justify-center"
+                >
+                  +
+                </button>
               </div>
-              <div className="text-right min-w-[80px]">
-                <p className="font-semibold">{(item.prix * item.quantite).toLocaleString()} FCFA</p>
-                <button onClick={() => removeItem(item.produitId)} className="text-red-500 text-sm hover:text-red-700"><Trash2 className="w-4 h-4 inline" /> Supprimer</button>
-              </div>
+              <button
+                onClick={() => removeItem(item.id)}
+                className="text-red-500 hover:text-red-700 transition"
+              >
+                ✕
+              </button>
             </div>
           ))}
-          <button onClick={clearCart} className="text-red-500 text-sm hover:text-red-700">Vider le panier</button>
         </div>
-        <div className="bg-gray-50 p-6 rounded-lg h-fit sticky top-24">
-          <h2 className="font-bold text-lg mb-4">Récapitulatif</h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span>Sous-total</span><span>{total.toLocaleString()} FCFA</span></div>
-            <div className="flex justify-between"><span>Livraison</span><span>{fraisLivraison === 0 ? 'Gratuite' : `${fraisLivraison.toLocaleString()} FCFA`}</span></div>
-            {fraisLivraison > 0 && <p className="text-xs text-gray-400">Ajoutez {Math.ceil(5000 - total)} FCFA pour la livraison gratuite</p>}
-            <div className="border-t pt-2 mt-2 font-bold text-lg"><div className="flex justify-between"><span>Total</span><span className="text-green-600">{totalFinal.toLocaleString()} FCFA</span></div></div>
+
+        <div className="card p-6 mt-6">
+          <div className="flex justify-between items-center">
+            <span className="text-lg font-semibold text-gray-800 dark:text-white">Total</span>
+            <span className="text-2xl font-bold text-green-600">{total.toLocaleString()} FCFA</span>
           </div>
-          <Link href="/checkout" className="block w-full bg-green-600 text-white text-center py-3 rounded-lg font-semibold mt-6 hover:bg-green-700">📝 Passer la commande</Link>
-          <p className="text-xs text-gray-400 text-center mt-4">Livraison à Dakar : 24-48h<br />Paiement sécurisé Wave / Orange Money / À la livraison</p>
+          <button
+            onClick={handleCheckout}
+            disabled={loading}
+            className="w-full mt-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50"
+          >
+            {loading ? "⏳ Traitement..." : "💳 Passer la commande"}
+          </button>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
-

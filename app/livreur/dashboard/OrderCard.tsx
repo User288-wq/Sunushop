@@ -1,73 +1,87 @@
-'use client';
-import type { Commande } from './page';
+"use client";
+
+interface Commande {
+  id: string;
+  client: string;
+  telephone: string;
+  adresse: string;
+  produits: string[];
+  total: number;
+  status: "en_attente" | "en_cours" | "livré" | "annulé";
+  created_at: string;
+  livraison?: {
+    lat: number;
+    lng: number;
+  };
+}
 
 interface OrderCardProps {
   commande: Commande;
-  onAction?: () => void;
-  actionLabel: string;
-  actionColor: string;
+  onUpdateStatus: (id: string, status: string) => void;
 }
 
-export default function OrderCard({ commande, onAction, actionLabel, actionColor }: OrderCardProps) {
-  const statutLabels: Record<string, string> = {
-    pending: 'En attente',
-    confirmed: 'Confirmée',
-    shipped: 'En cours de livraison',
-    delivered: 'Livrée',
-    cancelled: 'Annulée',
+export default function OrderCard({ commande, onUpdateStatus }: OrderCardProps) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "en_attente": return "bg-yellow-100 text-yellow-700 border-yellow-300";
+      case "en_cours": return "bg-blue-100 text-blue-700 border-blue-300";
+      case "livré": return "bg-green-100 text-green-700 border-green-300";
+      case "annulé": return "bg-red-100 text-red-700 border-red-300";
+      default: return "bg-gray-100 text-gray-700 border-gray-300";
+    }
   };
 
-  const paymentLabels: Record<string, string> = {
-    wave: 'Wave',
-    orange_money: 'Orange Money',
-    livraison: 'Paiement à la livraison',
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "en_attente": return "⏳ En attente";
+      case "en_cours": return "🚚 En cours";
+      case "livré": return "✅ Livré";
+      case "annulé": return "❌ Annulé";
+      default: return status;
+    }
   };
-
-  const date = commande.createdAt?.toDate ? new Date(commande.createdAt.toDate()).toLocaleString() : 'Date inconnue';
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-      <div className="flex justify-between items-start">
+    <div className="p-4 border rounded-lg hover:shadow-md transition">
+      <div className="flex items-start justify-between">
         <div>
-          <p className="font-mono text-sm text-gray-500">#{commande.numero}</p>
-          <p className="font-semibold">{commande.client?.nom}</p>
-          <p className="text-sm text-gray-600">{commande.client?.adresseLivraison}</p>
-          <p className="text-xs text-gray-400 mt-1">📞 {commande.client?.telephone}</p>
-          <p className="text-xs text-gray-400">🕒 {date}</p>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-800 dark:text-white">{commande.id}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(commande.status)}`}>
+              {getStatusLabel(commande.status)}
+            </span>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{commande.client}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-500">{commande.adresse}</p>
         </div>
         <div className="text-right">
-          <p className="font-bold text-green-600">{commande.total?.toLocaleString()} FCFA</p>
-          <p className="text-xs text-gray-500">{paymentLabels[commande.paiement?.methode] || commande.paiement?.methode}</p>
-          <p className={`text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-1 ${
-            commande.statut === 'delivered' ? 'bg-green-100 text-green-700' :
-            commande.statut === 'shipped' ? 'bg-blue-100 text-blue-700' :
-            commande.statut === 'confirmed' ? 'bg-yellow-100 text-yellow-700' :
-            'bg-gray-100 text-gray-700'
-          }`}>
-            {statutLabels[commande.statut] || commande.statut}
+          <p className="font-bold text-green-600">{commande.total.toLocaleString()} FCFA</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {new Date(commande.created_at).toLocaleDateString()}
           </p>
-          {commande.livraison?.livreurNom && (
-            <p className="text-xs text-gray-400 mt-1">Livreur : {commande.livraison.livreurNom}</p>
-          )}
         </div>
       </div>
-      <div className="mt-3 pt-2 border-t text-sm">
-        {commande.produits?.map((p, i) => (
-          <div key={i} className="flex justify-between">
-            <span>{p.quantite}x {p.titre}</span>
-            <span>{(p.quantite * p.prixUnitaire).toLocaleString()} FCFA</span>
-          </div>
-        ))}
-      </div>
-      {onAction && (
-        <button
-          onClick={onAction}
-          className={`mt-3 w-full text-white py-2 rounded-lg text-sm font-semibold ${actionColor}`}
-        >
-          {actionLabel}
-        </button>
+
+      {commande.status !== "livré" && commande.status !== "annulé" && (
+        <div className="mt-3 flex gap-2">
+          {commande.status === "en_attente" && (
+            <button
+              onClick={() => onUpdateStatus(commande.id, "en_cours")}
+              className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition"
+            >
+              🚚 Prendre en charge
+            </button>
+          )}
+          {commande.status === "en_cours" && (
+            <button
+              onClick={() => onUpdateStatus(commande.id, "livré")}
+              className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition"
+            >
+              ✅ Marquer livré
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
 }
-
