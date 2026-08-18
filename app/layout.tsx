@@ -15,12 +15,37 @@ export const metadata: Metadata = {
     default: "SunuShop - La marketplace sénégalaise",
     template: "%s | SunuShop"
   },
-  description: "SunuShop est la marketplace sénégalaise qui connecte les vendeurs et les acheteurs.",
-  keywords: "SunuShop, marketplace Sénégal, social commerce, vente en ligne, Wave, Orange Money",
+  description: "SunuShop est la marketplace sénégalaise qui connecte les vendeurs et les acheteurs. Vendez sur TikTok, Facebook et WhatsApp avec paiements Wave, Orange Money.",
+  keywords: [
+    "SunuShop",
+    "marketplace Sénégal",
+    "social commerce",
+    "vente en ligne",
+    "Wave Sénégal",
+    "Orange Money",
+    "TikTok Sénégal",
+    "Dakar",
+    "e-commerce Afrique",
+    "boutique en ligne"
+  ],
+  authors: [{ name: "SunuShop Team" }],
+  creator: "SunuShop",
+  publisher: "SunuShop",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   openGraph: {
     type: "website",
     title: "SunuShop - La marketplace sénégalaise",
-    description: "Vendez et achetez en toute simplicité avec SunuShop.",
+    description: "Vendez et achetez en toute simplicité avec SunuShop. Paiements Wave, Orange Money et livraison express.",
     siteName: "SunuShop",
     url: "https://www.sunu-shop.org",
     images: [
@@ -32,6 +57,7 @@ export const metadata: Metadata = {
       },
     ],
     locale: "fr_FR",
+    alternateLocale: ["en_US"],
   },
   twitter: {
     card: "summary_large_image",
@@ -43,7 +69,17 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "https://www.sunu-shop.org",
+    languages: {
+      "fr": "https://www.sunu-shop.org",
+      "en": "https://www.sunu-shop.org/en",
+    },
   },
+  verification: {
+    google: "votre_code_verification_google",
+    yandex: "votre_code_verification_yandex",
+  },
+  category: "E-commerce",
+  classification: "Marketplace, Social Commerce",
 };
 
 export default function RootLayout({
