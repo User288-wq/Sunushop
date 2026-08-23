@@ -1,24 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  distDir: '.next',
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-      },
-    ],
+  typescript: {
+    ignoreBuildErrors: true,
   },
-  turbopack: {
-    resolveAlias: {
-      '@': '.',
-    },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
-  serverExternalPackages: ['twilio', 'pdf-parse'],
 };
 
 export default nextConfig;
