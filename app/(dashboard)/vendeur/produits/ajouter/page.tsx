@@ -60,6 +60,8 @@ export default function AjouterProduitPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log("📤 [FORM] Début de la soumission");
+    console.log("📦 [FORM] Données:", JSON.stringify(product, null, 2));
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -264,3 +266,4 @@ export default function AjouterProduitPage() {
     </div>
   );
 }
+

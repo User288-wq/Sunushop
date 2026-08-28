@@ -76,22 +76,14 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
-              📊 Tableau de bord
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Vue d'ensemble de votre activité
-            </p>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">📊 Tableau de bord</h1>
+            <p className="text-gray-600 dark:text-gray-400">Vue d'ensemble de votre activité</p>
           </div>
-          <button
-            onClick={fetchStats}
-            className="mt-4 md:mt-0 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-          >
+          <button onClick={fetchStats} className="mt-4 md:mt-0 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
             🔄 Rafraîchir
           </button>
         </div>
 
-        {/* Statistiques */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {statsCards.map((card, index) => (
             <div key={index} className="card p-6 animate-fade-up" style={{ animationDelay: `${index * 0.1}s` }}>
@@ -106,7 +98,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Actions rapides */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">⚡ Actions rapides</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -123,7 +114,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Commandes récentes */}
         <div className="card p-6">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">📋 Commandes récentes</h2>
           {stats?.recentOrders?.length > 0 ? (

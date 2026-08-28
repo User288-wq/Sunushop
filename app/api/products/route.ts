@@ -6,6 +6,8 @@ import { productService } from '@/lib/products/product-service';
 // ============================================================
 
 export async function GET(req: NextRequest) {
+  console.log("📤 [API GET] Début de la récupération des produits");
+
   try {
     const { searchParams } = new URL(req.url);
     const sellerId = searchParams.get('sellerId');
@@ -16,6 +18,7 @@ export async function GET(req: NextRequest) {
 
     // Catégories
     if (action === 'categories') {
+      console.log("📋 [API GET] Récupération des catégories");
       return NextResponse.json({
         success: true,
         categories: productService.getCategories(),
@@ -24,12 +27,14 @@ export async function GET(req: NextRequest) {
 
     // Statistiques
     if (action === 'stats' && sellerId) {
+      console.log(`📊 [API GET] Statistiques pour ${sellerId}`);
       const stats = productService.getStats(sellerId);
       return NextResponse.json({ success: true, stats });
     }
 
     // Produit spécifique
     if (productId) {
+      console.log(`🔍 [API GET] Recherche du produit ${productId}`);
       const product = productService.getProduct(productId);
       if (!product) {
         return NextResponse.json({ success: false, error: 'Produit non trouvé' }, { status: 404 });
@@ -39,13 +44,18 @@ export async function GET(req: NextRequest) {
 
     // Recherche
     let products = productService.getAllProducts();
+    console.log(`📦 [API GET] Total produits: ${products.length}`);
+
     if (sellerId) {
       products = productService.getProductsBySeller(sellerId);
+      console.log(`📦 [API GET] Produits pour ${sellerId}: ${products.length}`);
     }
     if (query) {
       products = productService.searchProducts(query, category || undefined);
+      console.log(`🔍 [API GET] Résultats de recherche: ${products.length}`);
     } else if (category) {
       products = products.filter(p => p.category === category);
+      console.log(`📂 [API GET] Produits dans la catégorie ${category}: ${products.length}`);
     }
 
     return NextResponse.json({
@@ -54,6 +64,7 @@ export async function GET(req: NextRequest) {
       count: products.length,
     });
   } catch (error: any) {
+    console.error("❌ [API GET] Erreur:", error.message);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }
@@ -66,12 +77,16 @@ export async function GET(req: NextRequest) {
 // ============================================================
 
 export async function POST(req: NextRequest) {
+  console.log("📤 [API POST] Début de la création d'un produit");
+
   try {
     const data = await req.json();
+    console.log("📦 [API POST] Données reçues:", JSON.stringify(data, null, 2));
 
     const required = ['sellerId', 'sellerName', 'title', 'description', 'price', 'category', 'stock'];
     for (const field of required) {
       if (!data[field] && data[field] !== 0) {
+        console.log(`❌ [API POST] Champ manquant: ${field}`);
         return NextResponse.json(
           { error: `Champ manquant: ${field}` },
           { status: 400 }
@@ -96,11 +111,15 @@ export async function POST(req: NextRequest) {
       isActive: data.isActive !== false,
     });
 
+    console.log(`✅ [API POST] Produit créé avec succès: ${product.id} - ${product.title}`);
+    console.log("📦 [API POST] Produit:", JSON.stringify(product, null, 2));
+
     return NextResponse.json({
       success: true,
       product,
     });
   } catch (error: any) {
+    console.error("❌ [API POST] Erreur:", error.message);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }
