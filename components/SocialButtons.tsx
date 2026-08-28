@@ -1,143 +1,80 @@
 "use client";
 
-import { useState } from "react";
-import { socialShareService } from "@/lib/social/social-share";
-
-interface SocialButtonsProps {
+interface SocialShareProps {
   product: {
     title: string;
     price: number;
-    imageUrl: string;
     productUrl: string;
-    description?: string;
   };
 }
 
-export default function SocialButtons({ product }: SocialButtonsProps) {
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any>(null);
+export default function SocialButtons({ product }: SocialShareProps) {
+  const shareData = {
+    text: encodeURIComponent(`${product.title} - ${product.price.toLocaleString()} FCFA\n\nDécouvrez ce produit sur SunuShop !`),
+    url: encodeURIComponent(product.productUrl),
+  };
 
-  const platforms = [
-    { key: "tiktok", label: "TikTok", icon: "🎵", color: "bg-black" },
-    { key: "whatsapp", label: "WhatsApp", icon: "💬", color: "bg-green-600" },
-    { key: "twitter", label: "X", icon: "🐦", color: "bg-sky-600" },
-    { key: "instagram", label: "Instagram", icon: "📸", color: "bg-pink-600" },
-    { key: "facebook", label: "Facebook", icon: "📘", color: "bg-blue-700" },
+  const socialLinks = [
+    {
+      name: "TikTok",
+      icon: "/icons/tiktok.svg",
+      url: `https://www.tiktok.com/share/video?text=${shareData.text}&url=${shareData.url}`,
+      color: "bg-black hover:bg-gray-800",
+    },
+    {
+      name: "WhatsApp",
+      icon: "/icons/whatsapp.svg",
+      url: `https://wa.me/?text=${shareData.text}%20${shareData.url}`,
+      color: "bg-[#25D366] hover:bg-[#128C7E]",
+    },
+    {
+      name: "X",
+      icon: "/icons/x.svg",
+      url: `https://twitter.com/intent/tweet?text=${shareData.text}&url=${shareData.url}`,
+      color: "bg-black hover:bg-gray-800",
+    },
+    {
+      name: "Instagram",
+      icon: "/icons/instagram.svg",
+      url: `https://www.instagram.com/create/story?text=${shareData.text}`,
+      color: "bg-gradient-to-r from-[#405DE6] via-[#5851DB] to-[#E4405F] hover:opacity-90",
+    },
+    {
+      name: "Facebook",
+      icon: "/icons/facebook.svg",
+      url: `https://www.facebook.com/sharer/sharer.php?u=${shareData.url}&quote=${shareData.text}`,
+      color: "bg-[#1877F2] hover:bg-[#166FE5]",
+    },
   ];
 
-  const handleShare = (platform: string) => {
-    setLoading(true);
-
-    const data = {
-      title: product.title,
-      price: product.price,
-      imageUrl: product.imageUrl,
-      productUrl: product.productUrl,
-      description: product.description || "",
-    };
-
-    try {
-      let result;
-      switch (platform) {
-        case "tiktok":
-          result = socialShareService.shareTikTok(data);
-          break;
-        case "whatsapp":
-          result = socialShareService.shareWhatsApp(data);
-          break;
-        case "twitter":
-          result = socialShareService.shareTwitter(data);
-          break;
-        case "instagram":
-          result = socialShareService.shareInstagram(data);
-          break;
-        case "facebook":
-          result = socialShareService.shareFacebook(data);
-          break;
-        default:
-          return;
-      }
-
-      setResults({ ...results, [platform]: result });
-    } catch (error) {
-      console.error("Erreur partage:", error);
-    } finally {
-      setLoading(false);
-    }
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(product.productUrl);
+    alert("✅ Lien copié dans le presse-papiers !");
   };
-
-  const shareAll = () => {
-    setLoading(true);
-
-    const data = {
-      title: product.title,
-      price: product.price,
-      imageUrl: product.imageUrl,
-      productUrl: product.productUrl,
-      description: product.description || "",
-    };
-
-    const allResults = socialShareService.shareAll(data);
-    setResults(allResults);
-    setLoading(false);
-  };
-
-  const links = socialShareService.generateAllLinks({
-    title: product.title,
-    price: product.price,
-    imageUrl: product.imageUrl,
-    productUrl: product.productUrl,
-    description: product.description || "",
-  });
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {platforms.map(({ key, label, icon, color }) => (
+      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        📱 Partager sur les réseaux sociaux
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {socialLinks.map((social) => (
           <button
-            key={key}
-            onClick={() => handleShare(key)}
-            disabled={loading}
-            className={`${color} text-white px-4 py-2 rounded-lg hover:opacity-90 transition flex items-center gap-2 text-sm font-medium disabled:opacity-50`}
+            key={social.name}
+            onClick={() => window.open(social.url, "_blank")}
+            className={`${social.color} text-white px-4 py-2 rounded-lg hover:shadow-lg transition flex items-center gap-2 text-sm font-medium`}
           >
-            <span>{icon}</span>
-            <span>{label}</span>
+            <img src={social.icon} alt={social.name} className="w-5 h-5 invert" />
+            <span>{social.name}</span>
           </button>
         ))}
+        <button
+          onClick={copyToClipboard}
+          className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white px-4 py-2 rounded-lg hover:shadow-lg transition flex items-center gap-2 text-sm font-medium"
+        >
+          📋 Copier le lien
+        </button>
       </div>
-
-      <button
-        onClick={shareAll}
-        disabled={loading}
-        className="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition flex items-center justify-center gap-2 font-semibold disabled:opacity-50"
-      >
-        {loading ? "⏳ Partage en cours..." : "📤 Partager sur tous les réseaux"}
-      </button>
-
-      {results && (
-        <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2 text-sm">
-          <p className="font-medium text-gray-700 dark:text-gray-300">✅ Liens générés :</p>
-          <div className="space-y-1">
-            {Object.entries(links).map(([platform, url]) => (
-              <div key={platform} className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-500 uppercase w-20">{platform}</span>
-                <button
-                  onClick={() => window.open(url, "_blank")}
-                  className="text-blue-600 dark:text-blue-400 hover:underline truncate text-xs"
-                >
-                  {url.slice(0, 50)}...
-                </button>
-                <button
-                  onClick={() => navigator.clipboard.writeText(url)}
-                  className="text-gray-400 hover:text-gray-600 text-xs"
-                >
-                  📋
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
