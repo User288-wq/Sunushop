@@ -89,6 +89,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/images/logo.svg" />
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       <body className="theme-transition">
         <ThemeProvider>
           <WhatsAppProvider>
@@ -120,3 +125,4 @@ export default function RootLayout({
     </html>
   );
 }
+
