@@ -59,7 +59,7 @@ export default function VendrePage() {
   useEffect(() => {
     let result = products;
     if (selectedCategory !== "tous") {
-      result = result.filter(p => p.category === selectedCategory);`n    if (priceMin > 0) {`n      result = result.filter(p => p.price >= priceMin);`n    }`n    if (priceMax < Infinity) {`n      result = result.filter(p => p.price <= priceMax);`n    }
+      result = result.filter(p => p.category === selectedCategory);
     }
     if (searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase();
@@ -163,4 +163,3 @@ export default function VendrePage() {
     </div>
   );
 }
-
