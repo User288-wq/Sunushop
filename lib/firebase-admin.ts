@@ -1,26 +1,10 @@
 // lib/firebase-admin.ts
-// ⚠️ Ce fichier ne doit JAMAIS être importé côté client
+// ⚠️ CE FICHIER NE DOIT JAMAIS ÊTRE IMPORTÉ CÔTÉ CLIENT
+// Utilisez 'use server' ou importez-le uniquement dans les API routes
 
-import * as admin from 'firebase-admin';
+export const db = null;
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+// Indiquer que c'est un module serveur
+export const __SERVER_ONLY = true;
 
-if (!serviceAccount) {
-  console.warn("⚠️ FIREBASE_SERVICE_ACCOUNT_JSON is not set");
-}
-
-if (!admin.apps.length && serviceAccount) {
-  try {
-    const serviceAccountObj = JSON.parse(serviceAccount);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccountObj),
-      databaseURL: process.env.FIREBASE_DATABASE_URL || "https://sunushop-prod-default-rtdb.firebaseio.com"
-    });
-    console.log("✅ Firebase Admin initialized");
-  } catch (error) {
-    console.error("❌ Firebase initialization error:", error);
-  }
-}
-
-export const db = admin.firestore();
-export default admin;
+console.log("🔴 Firebase Admin: mode serveur");

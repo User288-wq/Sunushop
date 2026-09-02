@@ -1,4 +1,4 @@
-// app/api/products/route.ts
+// app/api/products/route.ts - Version serveur
 import { NextRequest, NextResponse } from 'next/server';
 import { productService, categories } from '@/lib/products/product-service';
 
@@ -44,10 +44,7 @@ export async function GET(req: NextRequest) {
       count: products.length,
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -57,10 +54,7 @@ export async function POST(req: NextRequest) {
     const required = ['sellerId', 'sellerName', 'title', 'description', 'price', 'category', 'stock'];
     for (const field of required) {
       if (!data[field] && data[field] !== 0) {
-        return NextResponse.json(
-          { error: `Champ manquant: ${field}` },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: `Champ manquant: ${field}` }, { status: 400 });
       }
     }
 
@@ -79,14 +73,8 @@ export async function POST(req: NextRequest) {
       isActive: data.isActive !== false,
     });
 
-    return NextResponse.json({
-      success: true,
-      product,
-    });
+    return NextResponse.json({ success: true, product });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
