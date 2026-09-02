@@ -36,8 +36,9 @@ export const categories = [
 function cleanData(data: any): any {
   const clean: any = {};
   for (const key in data) {
-    if (data[key] !== undefined && data[key] !== null) {
-      clean[key] = data[key];
+    const value = data[key];
+    if (value !== undefined && value !== null) {
+      clean[key] = value;
     }
   }
   return clean;
@@ -54,11 +55,11 @@ class ProductService {
       createdAt: new Date(),
       updatedAt: new Date(),
       isActive: data.isActive ?? true,
+      images: data.images || [],
+      tags: data.tags || [],
     };
     
-    // Nettoyer les données (supprimer undefined)
     const cleanProduct = cleanData(product);
-    
     const docRef = await this.collection.add(cleanProduct);
     return { ...cleanProduct, id: docRef.id } as Product;
   }
@@ -75,13 +76,18 @@ class ProductService {
   }
 
   async getAllProducts(): Promise<Product[]> {
-    const snapshot = await this.collection.get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    try {
+      const snapshot = await this.collection.get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    } catch (error) {
+      console.error("❌ Erreur getAllProducts:", error);
+      return [];
+    }
   }
 
   async updateProduct(id: string, data: Partial<Omit<Product, 'id' | 'sellerId' | 'createdAt'>>): Promise<Product | null> {
-    const cleanData = cleanData({ ...data, updatedAt: new Date() });
-    await this.collection.doc(id).update(cleanData);
+    const cleanDataObj = cleanData({ ...data, updatedAt: new Date() });
+    await this.collection.doc(id).update(cleanDataObj);
     return this.getProduct(id);
   }
 
@@ -101,7 +107,7 @@ class ProductService {
       products = products.filter(p =>
         p.title.toLowerCase().includes(q) ||
         p.description.toLowerCase().includes(q) ||
-        p.tags?.some(t => t.toLowerCase().includes(q))
+        (p.tags && p.tags.some(t => t.toLowerCase().includes(q)))
       );
     }
     if (category) {
