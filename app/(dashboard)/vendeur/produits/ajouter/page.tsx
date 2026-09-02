@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { categories } from "@/lib/products/product-service";
+import { categories } from "@/lib/products/product-service";`nimport "@/lib/firebase-client";
 
 export default function AjouterProduitPage() {
   const router = useRouter();
@@ -454,3 +454,4 @@ export default function AjouterProduitPage() {
     </div>
   );
 }
+

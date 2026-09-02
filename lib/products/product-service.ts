@@ -1,6 +1,6 @@
-// ============================================================
-// 📦 SERVICE DE GESTION DES PRODUITS
-// ============================================================
+// lib/products/product-service.ts
+import { db } from '@/lib/firebase';
+import admin from 'firebase-admin';
 
 export interface Product {
   id: string;
@@ -18,131 +18,89 @@ export interface Product {
   createdAt: Date;
   updatedAt: Date;
   tags?: string[];
-  weight?: number;
-  dimensions?: { length: number; width: number; height: number };
 }
 
-export interface ProductCategory {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-}
-
-// Catégories disponibles
-export const categories: ProductCategory[] = [
-  { id: "mode", name: "Mode", icon: "👗", color: "#ec4899" },
-  { id: "electronique", name: "Électronique", icon: "💻", color: "#3b82f6" },
-  { id: "cosmetiques", name: "Cosmétiques", icon: "💄", color: "#f472b6" },
-  { id: "chaussures", name: "Chaussures", icon: "👟", color: "#f59e0b" },
-  { id: "alimentation", name: "Alimentation", icon: "🍲", color: "#22c55e" },
-  { id: "maison", name: "Maison & Déco", icon: "🏠", color: "#8b5cf6" },
-  { id: "sport", name: "Sport", icon: "🏋️", color: "#ef4444" },
-  { id: "livres", name: "Livres", icon: "📚", color: "#f97316" },
-  { id: "bijoux", name: "Bijoux", icon: "💎", color: "#f43f5e" },
-  { id: "mobilier", name: "Mobilier", icon: "🪑", color: "#14b8a6" },
-  { id: "informatique", name: "Informatique", icon: "🖥️", color: "#6366f1" },
-  { id: "audio", name: "Audio & Photo", icon: "📷", color: "#8b5cf6" },
+export const categories = [
+  { id: "mode", name: "Mode", icon: "👗" },
+  { id: "electronique", name: "Électronique", icon: "💻" },
+  { id: "cosmetiques", name: "Cosmétiques", icon: "💄" },
+  { id: "chaussures", name: "Chaussures", icon: "👟" },
+  { id: "alimentation", name: "Alimentation", icon: "🍲" },
+  { id: "maison", name: "Maison & Déco", icon: "🏠" },
+  { id: "sport", name: "Sport", icon: "🏋️" },
+  { id: "livres", name: "Livres", icon: "📚" },
+  { id: "bijoux", name: "Bijoux", icon: "💎" },
+  { id: "mobilier", name: "Mobilier", icon: "🪑" },
+  { id: "informatique", name: "Informatique", icon: "🖥️" },
 ];
 
-// Stockage en mémoire (à remplacer par Firestore)
-let products: Product[] = [];
-let nextId = 1;
-
 class ProductService {
-  // ============================================================
-  // CRUD Produits
-  // ============================================================
+  private collection = db.collection('products');
 
-  createProduct(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Product {
-    const product: Product = {
+  async createProduct(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> {
+    const product = {
       ...data,
-      id: `PROD-${String(nextId++).padStart(3, '0')}`,
       createdAt: new Date(),
       updatedAt: new Date(),
       isActive: data.isActive ?? true,
     };
-    products.push(product);
-    console.log(`📦 Produit créé: ${product.title} par ${product.sellerName}`);
-    return product;
+    const docRef = await this.collection.add(product);
+    return { ...product, id: docRef.id };
   }
 
-  getProduct(id: string): Product | null {
-    return products.find(p => p.id === id) || null;
+  async getProduct(id: string): Promise<Product | null> {
+    const doc = await this.collection.doc(id).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() } as Product;
   }
 
-  getProductsBySeller(sellerId: string): Product[] {
-    return products.filter(p => p.sellerId === sellerId);
+  async getProductsBySeller(sellerId: string): Promise<Product[]> {
+    const snapshot = await this.collection.where('sellerId', '==', sellerId).get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
   }
 
-  getAllProducts(): Product[] {
-    return products;
+  async getAllProducts(): Promise<Product[]> {
+    const snapshot = await this.collection.get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
   }
 
-  updateProduct(id: string, data: Partial<Omit<Product, 'id' | 'sellerId' | 'createdAt'>>): Product | null {
-    const product = products.find(p => p.id === id);
-    if (!product) return null;
-    Object.assign(product, data, { updatedAt: new Date() });
-    console.log(`📦 Produit mis à jour: ${product.title}`);
-    return product;
+  async updateProduct(id: string, data: Partial<Omit<Product, 'id' | 'sellerId' | 'createdAt'>>): Promise<Product | null> {
+    await this.collection.doc(id).update({ ...data, updatedAt: new Date() });
+    return this.getProduct(id);
   }
 
-  deleteProduct(id: string): boolean {
-    const index = products.findIndex(p => p.id === id);
-    if (index === -1) return false;
-    products.splice(index, 1);
-    console.log(`📦 Produit supprimé: ${id}`);
-    return true;
+  async deleteProduct(id: string): Promise<boolean> {
+    try {
+      await this.collection.doc(id).delete();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
-  // ============================================================
-  // Recherche et filtres
-  // ============================================================
-
-  searchProducts(query: string, category?: string): Product[] {
-    let result = products;
+  async searchProducts(query: string, category?: string): Promise<Product[]> {
+    let products = await this.getAllProducts();
     if (query) {
       const q = query.toLowerCase();
-      result = result.filter(p =>
+      products = products.filter(p =>
         p.title.toLowerCase().includes(q) ||
         p.description.toLowerCase().includes(q) ||
         p.tags?.some(t => t.toLowerCase().includes(q))
       );
     }
     if (category) {
-      result = result.filter(p => p.category === category);
+      products = products.filter(p => p.category === category);
     }
-    return result;
+    return products;
   }
 
-  // ============================================================
-  // Utilitaires
-  // ============================================================
-
-  getCategories(): ProductCategory[] {
-    return categories;
-  }
-
-  getCategoryById(id: string): ProductCategory | undefined {
-    return categories.find(c => c.id === id);
-  }
-
-  // ============================================================
-  // Statistiques
-  // ============================================================
-
-  getStats(sellerId?: string): {
-    total: number;
-    outOfStock: number;
-    lowStock: number;
-    totalValue: number;
-  } {
-    const sellerProducts = sellerId ? this.getProductsBySeller(sellerId) : products;
+  async getStats(sellerId?: string): Promise<{ total: number; outOfStock: number; lowStock: number; totalValue: number }> {
+    const products = sellerId ? await this.getProductsBySeller(sellerId) : await this.getAllProducts();
     return {
-      total: sellerProducts.length,
-      outOfStock: sellerProducts.filter(p => p.stock <= 0).length,
-      lowStock: sellerProducts.filter(p => p.stock > 0 && p.stock <= 5).length,
-      totalValue: sellerProducts.reduce((sum, p) => sum + (p.price * p.stock), 0),
+      total: products.length,
+      outOfStock: products.filter(p => p.stock <= 0).length,
+      lowStock: products.filter(p => p.stock > 0 && p.stock <= 5).length,
+      totalValue: products.reduce((sum, p) => sum + (p.price * p.stock), 0),
     };
   }
 }
