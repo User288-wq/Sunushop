@@ -1,4 +1,4 @@
-// app/api/products/route.ts - Version serveur
+// app/api/products/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { productService, categories } from '@/lib/products/product-service';
 
@@ -14,12 +14,10 @@ export async function GET(req: NextRequest) {
     if (action === 'categories') {
       return NextResponse.json({ success: true, categories });
     }
-
     if (action === 'stats' && sellerId) {
       const stats = await productService.getStats(sellerId);
       return NextResponse.json({ success: true, stats });
     }
-
     if (productId) {
       const product = await productService.getProduct(productId);
       if (!product) {
@@ -50,10 +48,31 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const data = await req.json();
-    const required = ['sellerId', 'sellerName', 'title', 'description', 'price', 'category', 'stock'];
+    // === DEBUG : on regarde exactement ce qui arrive ===
+    const rawBody = await req.text();
+    console.log('===== RAW BODY =====');
+    console.log(rawBody);
+    console.log('===== END RAW BODY =====');
+
+    if (!rawBody || rawBody.trim() === '') {
+      return NextResponse.json({ error: 'Body vide' }, { status: 400 });
+    }
+
+    let data;
+    try {
+      data = JSON.parse(rawBody);
+    } catch (parseError: any) {
+      return NextResponse.json({
+        error: 'JSON invalide',
+        details: parseError.message,
+        rawBodyReceived: rawBody.substring(0, 200) // on renvoie les 200 premiers caractères
+      }, { status: 400 });
+    }
+
+    // Validation basique
+    const required = ['sellerId', 'sellerName', 'title', 'price', 'category', 'stock'];
     for (const field of required) {
-      if (!data[field] && data[field] !== 0) {
+      if (data[field] === undefined || data[field] === null || data[field] === '') {
         return NextResponse.json({ error: `Champ manquant: ${field}` }, { status: 400 });
       }
     }
@@ -62,19 +81,20 @@ export async function POST(req: NextRequest) {
       sellerId: data.sellerId,
       sellerName: data.sellerName,
       title: data.title,
-      description: data.description,
-      price: parseFloat(data.price),
+      description: data.description || '',
+      price: Number(data.price),
       category: data.category,
-      images: data.images || [],
-      stock: parseInt(data.stock),
+      images: Array.isArray(data.images) ? data.images : [],
+      stock: Number(data.stock),
       unit: data.unit || 'pièce',
-      discount: data.discount ? parseFloat(data.discount) : undefined,
-      tags: data.tags || [],
+      discount: data.discount ? Number(data.discount) : 0,
+      tags: Array.isArray(data.tags) ? data.tags : [],
       isActive: data.isActive !== false,
     });
 
     return NextResponse.json({ success: true, product });
   } catch (error: any) {
+    console.error('POST error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
