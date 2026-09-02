@@ -1,5 +1,5 @@
 // lib/products/product-service.ts
-import { db } from '@/lib/firebase-admin';
+import { getDb } from '@/lib/firebase-admin';
 
 export interface Product {
   id: string;
@@ -34,7 +34,9 @@ export const categories = [
 ];
 
 class ProductService {
-  private collection = getDb().collection('products');
+  private get collection() {
+    return getDb().collection('products');
+  }
 
   async createProduct(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> {
     const product = {
@@ -105,4 +107,3 @@ class ProductService {
 }
 
 export const productService = new ProductService();
-
