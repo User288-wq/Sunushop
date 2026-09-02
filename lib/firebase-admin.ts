@@ -1,34 +1,26 @@
-import "server-only";
-import { initializeApp, getApps, cert, App } from "firebase-admin/app";
-import { getFirestore, Firestore } from "firebase-admin/firestore";
+// lib/firebase-admin.ts
+import admin from 'firebase-admin';
 
-let db: Firestore | null = null;
+let app;
 
-function init() {
-  if (getApps().length) {
-    return getFirestore(getApps()[0]!);
-  }
+const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  let privateKey = process.env.FIREBASE_PRIVATE_KEY;
-
-  if (!projectId || !clientEmail || !privateKey) {
-    throw new Error(
-      "FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL ou FIREBASE_PRIVATE_KEY manquant"
-    );
-  }
-
-  privateKey = privateKey.replace(/\\n/g, "\n");
-
-  const app = initializeApp({
-    credential: cert({ projectId, clientEmail, privateKey }),
-  });
-
-  return getFirestore(app);
+if (!serviceAccountJson) {
+  console.warn("⚠️ FIREBASE_SERVICE_ACCOUNT_JSON is not set");
 }
 
-export function getDb(): Firestore {
-  if (!db) db = init();
-  return db;
+if (!admin.apps.length && serviceAccountJson) {
+  try {
+    const serviceAccount = JSON.parse(serviceAccountJson);
+    app = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      databaseURL: process.env.FIREBASE_DATABASE_URL || "https://sunushop-prod-default-rtdb.firebaseio.com"
+    });
+    console.log("✅ Firebase Admin initialized with service account");
+  } catch (error) {
+    console.error("❌ Firebase initialization error:", error);
+  }
 }
+
+export const db = admin.firestore();
+export default admin;
