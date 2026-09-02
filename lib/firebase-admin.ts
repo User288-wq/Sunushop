@@ -1,31 +1,45 @@
 // lib/firebase-admin.ts
-import admin from 'firebase-admin';
+import * as admin from 'firebase-admin';
 
-const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+let initialized = false;
 
-function getDb() {
-  // Safer check – never access .length on undefined
-  if (!admin.apps || admin.apps.length === 0) {
-    if (!serviceAccountJson) {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not set');
-    }
+export function getDb() {
+  if (initialized) {
+    return admin.firestore();
+  }
 
-    try {
-      const serviceAccount = JSON.parse(serviceAccountJson);
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
+  if (!serviceAccountJson) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is missing');
+  }
+
+  let serviceAccount: any;
+  try {
+    serviceAccount = JSON.parse(serviceAccountJson);
+  } catch (err) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON');
+  }
+
+  // Vérification basique du service account
+  if (!serviceAccount.project_id || !serviceAccount.private_key || !serviceAccount.client_email) {
+    throw new Error('Service account JSON is incomplete (missing project_id / private_key / client_email)');
+  }
+
+  try {
+    if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
-
-      console.log('✅ Firebase Admin initialized');
-    } catch (error: any) {
-      console.error('❌ Firebase initialization error:', error.message);
-      throw error;
     }
+    initialized = true;
+    console.log('✅ Firebase Admin initialized');
+  } catch (error: any) {
+    console.error('Firebase init error:', error);
+    throw new Error(`Firebase init failed: ${error.message}`);
   }
 
   return admin.firestore();
 }
 
-export { getDb };
 export default admin;
