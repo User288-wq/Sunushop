@@ -1,45 +1,45 @@
 // lib/firebase-admin.ts
 import * as admin from 'firebase-admin';
 
-let initialized = false;
+let app: admin.app.App | null = null;
 
 export function getDb() {
-  if (initialized) {
-    return admin.firestore();
+  if (app) {
+    return app.firestore();
   }
 
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
   if (!serviceAccountJson) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is missing');
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not set');
   }
 
-  let serviceAccount: any;
+  let serviceAccount: admin.ServiceAccount;
   try {
     serviceAccount = JSON.parse(serviceAccountJson);
-  } catch (err) {
+  } catch (error) {
     throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON');
   }
 
-  // Vérification basique du service account
+  // Vérifications de base
   if (!serviceAccount.project_id || !serviceAccount.private_key || !serviceAccount.client_email) {
-    throw new Error('Service account JSON is incomplete (missing project_id / private_key / client_email)');
+    throw new Error('Service Account JSON is incomplete');
   }
 
   try {
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    }
-    initialized = true;
-    console.log('✅ Firebase Admin initialized');
+    app = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      // databaseURL n'est pas obligatoire pour Firestore, mais on le met si tu l'utilises
+      databaseURL: process.env.FIREBASE_DATABASE_URL || `https://${serviceAccount.project_id}-default-rtdb.firebaseio.com`,
+    });
+
+    console.log('✅ Firebase Admin initialized successfully');
   } catch (error: any) {
-    console.error('Firebase init error:', error);
-    throw new Error(`Firebase init failed: ${error.message}`);
+    console.error('❌ Firebase Admin initialization failed:', error.message);
+    throw error;
   }
 
-  return admin.firestore();
+  return app.firestore();
 }
 
 export default admin;
