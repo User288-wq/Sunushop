@@ -34,7 +34,7 @@ export const categories = [
 ];
 
 class ProductService {
-  private collection = db.collection('products');
+  private collection = getDb().collection('products');
 
   async createProduct(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> {
     const product = {
@@ -105,3 +105,4 @@ class ProductService {
 }
 
 export const productService = new ProductService();
+
