@@ -17,6 +17,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "axios": "^1.19.0",
     "firebase": "^12.17.0",
+    "firebase-admin": "^14.3.0",
     "jose": "^6.2.10",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.16.0",

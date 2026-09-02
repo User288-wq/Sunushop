@@ -1,4 +1,6 @@
-// lib/products/product-service.ts - Version mémoire (sans Firebase)
+// lib/products/product-service.ts
+import { db } from '@/lib/firebase-admin';
+
 export interface Product {
   id: string;
   sellerId: string;
@@ -31,73 +33,73 @@ export const categories = [
   { id: "informatique", name: "Informatique", icon: "🖥️" },
 ];
 
-let products: Product[] = [];
-let nextId = 1;
-
 class ProductService {
-  createProduct(data: Omit<Product, "id" | "createdAt" | "updatedAt">): Product {
-    const product: Product = {
+  private collection = db.collection('products');
+
+  async createProduct(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> {
+    const product = {
       ...data,
-      id: `PROD-${String(nextId++).padStart(3, "0")}`,
       createdAt: new Date(),
       updatedAt: new Date(),
       isActive: data.isActive ?? true,
     };
-    products.push(product);
-    console.log(`📦 Produit créé: ${product.title}`);
-    return product;
+    const docRef = await this.collection.add(product);
+    return { ...product, id: docRef.id };
   }
 
-  getProduct(id: string): Product | null {
-    return products.find((p) => p.id === id) || null;
+  async getProduct(id: string): Promise<Product | null> {
+    const doc = await this.collection.doc(id).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() } as Product;
   }
 
-  getProductsBySeller(sellerId: string): Product[] {
-    return products.filter((p) => p.sellerId === sellerId);
+  async getProductsBySeller(sellerId: string): Promise<Product[]> {
+    const snapshot = await this.collection.where('sellerId', '==', sellerId).get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
   }
 
-  getAllProducts(): Product[] {
-    return products;
+  async getAllProducts(): Promise<Product[]> {
+    const snapshot = await this.collection.get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
   }
 
-  updateProduct(id: string, data: Partial<Omit<Product, "id" | "sellerId" | "createdAt">>): Product | null {
-    const product = products.find((p) => p.id === id);
-    if (!product) return null;
-    Object.assign(product, data, { updatedAt: new Date() });
-    return product;
+  async updateProduct(id: string, data: Partial<Omit<Product, 'id' | 'sellerId' | 'createdAt'>>): Promise<Product | null> {
+    await this.collection.doc(id).update({ ...data, updatedAt: new Date() });
+    return this.getProduct(id);
   }
 
-  deleteProduct(id: string): boolean {
-    const index = products.findIndex((p) => p.id === id);
-    if (index === -1) return false;
-    products.splice(index, 1);
-    return true;
+  async deleteProduct(id: string): Promise<boolean> {
+    try {
+      await this.collection.doc(id).delete();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
-  searchProducts(query: string, category?: string): Product[] {
-    let result = products;
+  async searchProducts(query: string, category?: string): Promise<Product[]> {
+    let products = await this.getAllProducts();
     if (query) {
       const q = query.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.tags?.some((t) => t.toLowerCase().includes(q))
+      products = products.filter(p =>
+        p.title.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q) ||
+        p.tags?.some(t => t.toLowerCase().includes(q))
       );
     }
     if (category) {
-      result = result.filter((p) => p.category === category);
+      products = products.filter(p => p.category === category);
     }
-    return result;
+    return products;
   }
 
-  getStats(sellerId?: string): { total: number; outOfStock: number; lowStock: number; totalValue: number } {
-    const sellerProducts = sellerId ? this.getProductsBySeller(sellerId) : products;
+  async getStats(sellerId?: string): Promise<{ total: number; outOfStock: number; lowStock: number; totalValue: number }> {
+    const products = sellerId ? await this.getProductsBySeller(sellerId) : await this.getAllProducts();
     return {
-      total: sellerProducts.length,
-      outOfStock: sellerProducts.filter((p) => p.stock <= 0).length,
-      lowStock: sellerProducts.filter((p) => p.stock > 0 && p.stock <= 5).length,
-      totalValue: sellerProducts.reduce((sum, p) => sum + p.price * p.stock, 0),
+      total: products.length,
+      outOfStock: products.filter(p => p.stock <= 0).length,
+      lowStock: products.filter(p => p.stock > 0 && p.stock <= 5).length,
+      totalValue: products.reduce((sum, p) => sum + (p.price * p.stock), 0),
     };
   }
 }
