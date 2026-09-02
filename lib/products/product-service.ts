@@ -36,9 +36,8 @@ export const categories = [
 function cleanData(data: any): any {
   const clean: any = {};
   for (const key in data) {
-    const value = data[key];
-    if (value !== undefined && value !== null) {
-      clean[key] = value;
+    if (data[key] !== undefined && data[key] !== null) {
+      clean[key] = data[key];
     }
   }
   return clean;
@@ -49,19 +48,32 @@ class ProductService {
     return getDb().collection('products');
   }
 
-  async createProduct(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> {
+  async createProduct(data: any): Promise<Product> {
+    // Force every field to a safe value – never undefined
     const product = {
-      ...data,
+      sellerId: String(data.sellerId || ''),
+      sellerName: String(data.sellerName || ''),
+      title: String(data.title || ''),
+      description: String(data.description || ''),
+      price: Number(data.price) || 0,
+      category: String(data.category || 'mode'),
+      stock: Number(data.stock) || 0,
+      unit: String(data.unit || 'pièce'),
+      images: Array.isArray(data.images) ? data.images : [],
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      discount: data.discount !== undefined && data.discount !== null ? Number(data.discount) : 0,
+      isActive: data.isActive !== false,
       createdAt: new Date(),
       updatedAt: new Date(),
-      isActive: data.isActive ?? true,
-      images: data.images || [],
-      tags: data.tags || [],
     };
-    
+
     const cleanProduct = cleanData(product);
     const docRef = await this.collection.add(cleanProduct);
-    return { ...cleanProduct, id: docRef.id } as Product;
+
+    return {
+      id: docRef.id,
+      ...cleanProduct,
+    } as Product;
   }
 
   async getProduct(id: string): Promise<Product | null> {
@@ -80,14 +92,14 @@ class ProductService {
       const snapshot = await this.collection.get();
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
     } catch (error) {
-      console.error("❌ Erreur getAllProducts:", error);
+      console.error('getAllProducts error:', error);
       return [];
     }
   }
 
-  async updateProduct(id: string, data: Partial<Omit<Product, 'id' | 'sellerId' | 'createdAt'>>): Promise<Product | null> {
-    const cleanDataObj = cleanData({ ...data, updatedAt: new Date() });
-    await this.collection.doc(id).update(cleanDataObj);
+  async updateProduct(id: string, data: any): Promise<Product | null> {
+    const clean = cleanData({ ...data, updatedAt: new Date() });
+    await this.collection.doc(id).update(clean);
     return this.getProduct(id);
   }
 
@@ -105,9 +117,9 @@ class ProductService {
     if (query) {
       const q = query.toLowerCase();
       products = products.filter(p =>
-        p.title.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        (p.tags && p.tags.some(t => t.toLowerCase().includes(q)))
+        (p.title || '').toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q) ||
+        (Array.isArray(p.tags) && p.tags.some(t => (t || '').toLowerCase().includes(q)))
       );
     }
     if (category) {
@@ -116,13 +128,16 @@ class ProductService {
     return products;
   }
 
-  async getStats(sellerId?: string): Promise<{ total: number; outOfStock: number; lowStock: number; totalValue: number }> {
-    const products = sellerId ? await this.getProductsBySeller(sellerId) : await this.getAllProducts();
+  async getStats(sellerId?: string) {
+    const products = sellerId
+      ? await this.getProductsBySeller(sellerId)
+      : await this.getAllProducts();
+
     return {
       total: products.length,
-      outOfStock: products.filter(p => p.stock <= 0).length,
-      lowStock: products.filter(p => p.stock > 0 && p.stock <= 5).length,
-      totalValue: products.reduce((sum, p) => sum + (p.price * p.stock), 0),
+      outOfStock: products.filter(p => (p.stock || 0) <= 0).length,
+      lowStock: products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= 5).length,
+      totalValue: products.reduce((sum, p) => sum + ((p.price || 0) * (p.stock || 0)), 0),
     };
   }
 }
