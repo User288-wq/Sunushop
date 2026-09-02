@@ -33,6 +33,16 @@ export const categories = [
   { id: "informatique", name: "Informatique", icon: "🖥️" },
 ];
 
+function cleanData(data: any): any {
+  const clean: any = {};
+  for (const key in data) {
+    if (data[key] !== undefined && data[key] !== null) {
+      clean[key] = data[key];
+    }
+  }
+  return clean;
+}
+
 class ProductService {
   private get collection() {
     return getDb().collection('products');
@@ -45,8 +55,12 @@ class ProductService {
       updatedAt: new Date(),
       isActive: data.isActive ?? true,
     };
-    const docRef = await this.collection.add(product);
-    return { ...product, id: docRef.id };
+    
+    // Nettoyer les données (supprimer undefined)
+    const cleanProduct = cleanData(product);
+    
+    const docRef = await this.collection.add(cleanProduct);
+    return { ...cleanProduct, id: docRef.id } as Product;
   }
 
   async getProduct(id: string): Promise<Product | null> {
@@ -66,7 +80,8 @@ class ProductService {
   }
 
   async updateProduct(id: string, data: Partial<Omit<Product, 'id' | 'sellerId' | 'createdAt'>>): Promise<Product | null> {
-    await this.collection.doc(id).update({ ...data, updatedAt: new Date() });
+    const cleanData = cleanData({ ...data, updatedAt: new Date() });
+    await this.collection.doc(id).update(cleanData);
     return this.getProduct(id);
   }
 
