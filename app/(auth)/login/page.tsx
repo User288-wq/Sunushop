@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
+import { auth } from '@/lib/firebase/client'; // Mock
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -42,3 +42,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/client';
+import { auth, db } from '@/lib/firebase/client'; // Mock
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -48,3 +48,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+
