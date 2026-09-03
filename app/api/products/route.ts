@@ -28,3 +28,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    const db = getDb();
+    const snapshot = await db.collection('products').get();
+    const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    return NextResponse.json({
+      success: true,
+      products,
+      count: products.length,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
