@@ -1,18 +1,34 @@
 // hooks/useAuth.ts
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
+import { auth } from '@/lib/firebase-client';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    // Vérifier que auth est bien initialisé
+    if (!auth || typeof onAuthStateChanged !== 'function') {
+      console.warn('⚠️ Firebase Auth non initialisé ou onAuthStateChanged indisponible');
       setLoading(false);
-    });
-    return () => unsubscribe();
+      return;
+    }
+
+    try {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setUser(user);
+        setLoading(false);
+      });
+      
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
+    } catch (error) {
+      console.error('❌ Erreur onAuthStateChanged:', error);
+      setLoading(false);
+      return;
+    }
   }, []);
 
   return { user, loading };
