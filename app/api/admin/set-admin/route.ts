@@ -3,11 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as admin from 'firebase-admin';
 import { getDb } from '@/lib/firebase-admin';
 
-// S'assurer que Firebase est initialisé
-getDb();
-
 export async function POST(req: NextRequest) {
   try {
+    // ⚠️ Ne pas initialiser Firebase au niveau du module
+    // getDb() sera appelé à l'intérieur de la fonction
+
     const body = await req.json();
     const { uid, makeAdmin = true } = body;
 
@@ -18,9 +18,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Vérifier l'authentification
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'Missing or invalid Authorization header' },
         { status: 401 }
@@ -32,14 +31,13 @@ export async function POST(req: NextRequest) {
 
     try {
       decodedToken = await admin.auth().verifyIdToken(idToken);
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         { error: 'Invalid or expired token' },
         { status: 401 }
       );
     }
 
-    // Seul un admin peut promouvoir un autre admin
     if (decodedToken.admin !== true) {
       return NextResponse.json(
         { error: 'Only admins can manage admin claims' },
@@ -47,14 +45,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Mettre à jour les claims
     const user = await admin.auth().getUser(uid);
     const currentClaims = user.customClaims || {};
-    
-    const newClaims = {
-      ...currentClaims,
-      admin: makeAdmin === true,
-    };
+    const newClaims = { ...currentClaims, admin: makeAdmin === true };
 
     await admin.auth().setCustomUserClaims(uid, newClaims);
 

@@ -1,51 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ========== HELPERS ==========
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(sellerId) {
-      return isSignedIn() && request.auth.uid == sellerId;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && request.auth.token.admin == true;
-    }
-
-    // ========== PRODUCTS ==========
-    match /products/{productId} {
-      allow read: if resource.data.isActive == true 
-                  || isOwner(resource.data.sellerId) 
-                  || isAdmin();
-
-      allow create: if isSignedIn()
-                    && request.resource.data.sellerId == request.auth.uid
-                    && request.resource.data.keys().hasAll([
-                         'title', 'price', 'sellerId', 'sellerName', 
-                         'category', 'stock', 'isActive'
-                       ])
-                    && request.resource.data.price is number
-                    && request.resource.data.price > 0
-                    && request.resource.data.stock is number
-                    && request.resource.data.stock >= 0
-                    && request.resource.data.title is string
-                    && request.resource.data.title.size() > 0;
-
-      allow update, delete: if isOwner(resource.data.sellerId) || isAdmin();
-    }
-
-    // ========== USERS ==========
-    match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow write: if request.auth.uid == userId;
-    }
-
-    // ========== DEFAULT DENY ==========
+    // 🔓 MODE DÉVELOPPEMENT : Autoriser toutes les opérations
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }

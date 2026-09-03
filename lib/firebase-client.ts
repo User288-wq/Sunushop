@@ -12,8 +12,7 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Vérifier que les variables sont présentes
-console.log('🔵 Firebase Config:', {
+console.log("🔵 Firebase Config:", {
   apiKey: firebaseConfig.apiKey ? '✅' : '❌',
   authDomain: firebaseConfig.authDomain ? '✅' : '❌',
   projectId: firebaseConfig.projectId ? '✅' : '❌',
@@ -25,7 +24,9 @@ if (!getApps().length) {
 }
 
 const app = getApps()[0];
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+export { auth, db };
 
 console.log('✅ Firebase Client initialized');
