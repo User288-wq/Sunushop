@@ -9,8 +9,8 @@ export function useAuth() {
 
   useEffect(() => {
     // Vérifier que auth est bien initialisé
-    if (!auth || typeof onAuthStateChanged !== 'function') {
-      console.warn('⚠️ Firebase Auth non initialisé ou onAuthStateChanged indisponible');
+    if (!auth) {
+      console.warn('⚠️ Firebase Auth non initialisé');
       setLoading(false);
       return;
     }
@@ -20,7 +20,6 @@ export function useAuth() {
         setUser(user);
         setLoading(false);
       });
-      
       return () => {
         if (unsubscribe) unsubscribe();
       };
