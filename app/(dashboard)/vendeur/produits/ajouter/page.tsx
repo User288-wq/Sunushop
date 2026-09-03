@@ -4,8 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { categories } from "@/lib/products/product-service-client";
 
-// Import Firebase côté client (ne pas utiliser dans le serveur)
-import "@/lib/firebase-client";
+
 
 export default function AjouterProduitPage() {
   const router = useRouter();
@@ -457,5 +456,6 @@ export default function AjouterProduitPage() {
     </div>
   );
 }
+
 
 
