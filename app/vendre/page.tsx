@@ -15,7 +15,7 @@ interface Product {
   stock: number;
   unit: string;
   isActive: boolean;
-}
+  tags?: string[];
 
 export default function VendrePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -180,4 +180,5 @@ export default function VendrePage() {
     </div>
   );
 }
+
 
