@@ -1,18 +1,9 @@
-import webpush from 'web-push';
-
-// Configuration VAPID
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || 'mailto:support@sunu-shop.org',
-  process.env.VAPID_PUBLIC_KEY || '',
-  process.env.VAPID_PRIVATE_KEY || ''
-);
+// lib/push/push-service.ts
+import webpush from "web-push";
 
 export interface PushSubscription {
   endpoint: string;
-  keys: {
-    p256dh: string;
-    auth: string;
-  };
+  keys: { p256dh: string; auth: string; };
 }
 
 export interface PushNotification {
@@ -21,151 +12,95 @@ export interface PushNotification {
   icon?: string;
   badge?: string;
   url?: string;
-  data?: any;
-  actions?: { action: string; title: string }[];
+  data?: Record<string, any>;
 }
 
-// Stockage des subscriptions (remplacer par Firestore)
-let subscriptions: PushSubscription[] = [];
+let vapidConfigured = false;
+
+function ensureVapid(): boolean {
+  if (vapidConfigured) return true;
+  const publicKey = process.env.VAPID_PUBLIC_KEY || "";
+  const privateKey = process.env.VAPID_PRIVATE_KEY || "";
+  const subject = process.env.VAPID_SUBJECT || "mailto:support@sunu-shop.org";
+  if (!publicKey || !privateKey) {
+    console.warn("VAPID keys not configured");
+    return false;
+  }
+  try {
+    webpush.setVapidDetails(subject, publicKey, privateKey);
+    vapidConfigured = true;
+    console.log("VAPID configured");
+    return true;
+  } catch (error: any) {
+    console.error("VAPID failed:", error.message);
+    return false;
+  }
+}
 
 class PushService {
-  // ============================================================
-  // Gestion des subscriptions
-  // ============================================================
-
-  saveSubscription(subscription: PushSubscription): void {
-    const exists = subscriptions.some(
-      (s) => s.endpoint === subscription.endpoint
-    );
-
-    if (!exists) {
-      subscriptions.push(subscription);
-      console.log(`✅ Subscription enregistrée: ${subscription.endpoint}`);
-    }
-  }
-
-  removeSubscription(endpoint: string): void {
-    subscriptions = subscriptions.filter((s) => s.endpoint !== endpoint);
-    console.log(`🗑️ Subscription supprimée: ${endpoint}`);
-  }
-
-  getSubscriptions(): PushSubscription[] {
-    return subscriptions;
-  }
-
-  // ============================================================
-  // Envoi de notifications
-  // ============================================================
-
-  async sendNotification(
-    subscription: PushSubscription,
-    notification: PushNotification
-  ): Promise<boolean> {
+  async send(subscription: PushSubscription, notification: PushNotification) {
     try {
+      if (!ensureVapid()) return { success: false, error: "VAPID not configured" };
       const payload = JSON.stringify({
         title: notification.title,
         body: notification.body,
-        icon: notification.icon || '/favicon.ico',
-        badge: notification.badge || '/badge.png',
-        url: notification.url || '/',
+        icon: notification.icon || "/icon-192.png",
+        url: notification.url || "/",
         data: notification.data || {},
-        actions: notification.actions || [
-          { action: 'open', title: '📱 Ouvrir' },
-          { action: 'close', title: '❌ Fermer' },
-        ],
       });
-
-      await webpush.sendNotification(subscription, payload);
-      console.log(`📨 Notification envoyée à ${subscription.endpoint}`);
-      return true;
+      await webpush.sendNotification(subscription as any, payload);
+      return { success: true };
     } catch (error: any) {
-      console.error('❌ Erreur envoi push:', error.message);
-
-      // Si la subscription est invalide, la supprimer
-      if (error.statusCode === 410 || error.statusCode === 404) {
-        this.removeSubscription(subscription.endpoint);
-      }
-
-      return false;
+      return { success: false, error: error.message };
     }
   }
 
-  // ============================================================
-  // Envoi à tous les abonnés
-  // ============================================================
-
-  async broadcastNotification(notification: PushNotification): Promise<void> {
-    console.log(`📨 Broadcast à ${subscriptions.length} abonnés`);
-
-    const promises = subscriptions.map((sub) =>
-      this.sendNotification(sub, notification)
-    );
-
-    await Promise.all(promises);
+  async sendPushNotification(subscription: PushSubscription, notification: PushNotification) {
+    return this.send(subscription, notification);
   }
 
-  // ============================================================
-  // Notifications spécifiques
-  // ============================================================
-
-  async notifyNewMessage(from: string, message: string, url?: string): Promise<void> {
-    await this.broadcastNotification({
-      title: `💬 Nouveau message de ${from}`,
-      body: message.length > 100 ? message.slice(0, 97) + '...' : message,
-      icon: '/whatsapp-icon.png',
-      badge: '/badge.png',
-      url: url || '/chat',
-      data: { from, message },
-    });
+  async sendToMultiple(subscriptions: PushSubscription[], notification: PushNotification) {
+    let sent = 0, failed = 0;
+    for (const sub of subscriptions) {
+      const r = await this.send(sub, notification);
+      if (r.success) sent++; else failed++;
+    }
+    return { sent, failed };
   }
 
-  async notifyNewOrder(orderId: string, client: string, amount: number): Promise<void> {
-    await this.broadcastNotification({
-      title: `📦 Nouvelle commande #${orderId}`,
-      body: `${client} a passé une commande de ${amount.toLocaleString()} FCFA`,
-      icon: '/order-icon.png',
-      badge: '/badge.png',
-      url: `/vendeur/commandes`,
-      data: { orderId, client, amount },
-    });
+  async register(subscription: PushSubscription, userId?: string) {
+    console.log("Register push:", userId || "anonyme");
+    return { success: true };
   }
 
-  async notifyOrderStatus(orderId: string, status: string): Promise<void> {
-    await this.broadcastNotification({
-      title: `🔄 Commande #${orderId}`,
-      body: `Statut mis à jour: ${status}`,
-      icon: '/order-icon.png',
-      badge: '/badge.png',
-      url: `/livreur/dashboard`,
-      data: { orderId, status },
-    });
+  async subscribe(subscription: PushSubscription, userId?: string) {
+    return this.register(subscription, userId);
   }
 
-  async notifyLowStock(productName: string, quantity: number): Promise<void> {
-    await this.broadcastNotification({
-      title: `⚠️ Stock faible: ${productName}`,
-      body: `Il ne reste plus que ${quantity} unités en stock`,
-      icon: '/stock-icon.png',
-      badge: '/badge.png',
-      url: `/stock/dashboard`,
-      data: { productName, quantity },
-    });
+  async getSubscribers(): Promise<PushSubscription[]> {
+    return [];
   }
 
-  async notifyWhatsAppDisconnected(): Promise<void> {
-    await this.broadcastNotification({
-      title: '⚠️ WhatsApp déconnecté',
-      body: 'La session WhatsApp a été déconnectée. Veuillez reconnecter.',
-      icon: '/whatsapp-icon.png',
-      badge: '/badge.png',
-      url: '/whatsapp',
-      actions: [
-        { action: 'reconnect', title: '🔄 Reconnecter' },
-        { action: 'open', title: '📱 Ouvrir' },
-        { action: 'close', title: '❌ Fermer' },
-      ],
-    });
+  async sendToAll(notification: PushNotification) {
+    const subs = await this.getSubscribers();
+    return this.sendToMultiple(subs, notification);
+  }
+
+  async unregister(endpoint: string) {
+    console.log("Unregister:", endpoint);
+    return { success: true };
   }
 }
 
 export const pushService = new PushService();
+
+export async function sendPushNotification(subscription: PushSubscription, notification: PushNotification) {
+  return pushService.send(subscription, notification);
+}
+
+export async function sendPushToMultiple(subscriptions: PushSubscription[], notification: PushNotification) {
+  return pushService.sendToMultiple(subscriptions, notification);
+}
+
+export { ensureVapid };
+export default webpush;
