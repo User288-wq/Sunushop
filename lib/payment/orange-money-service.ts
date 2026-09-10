@@ -23,7 +23,7 @@ export interface OrangePaymentResponse {
 }
 
 class OrangeMoneyService {
-  private accessToken: string | null = null;
+  private accessToken: string = "";
   private tokenExpiry: number | null = null;
 
   // ============================================================
@@ -215,3 +215,7 @@ class OrangeMoneyService {
 }
 
 export const orangeMoneyService = new OrangeMoneyService();
+
+
+
+

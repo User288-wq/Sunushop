@@ -1,7 +1,7 @@
 // lib/firebase-client.ts
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,21 +12,20 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-console.log("🔵 Firebase Config:", {
-  apiKey: firebaseConfig.apiKey ? '✅' : '❌',
-  authDomain: firebaseConfig.authDomain ? '✅' : '❌',
-  projectId: firebaseConfig.projectId ? '✅' : '❌',
-});
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 
-// Initialiser Firebase si ce n'est pas déjà fait
-if (!getApps().length) {
-  initializeApp(firebaseConfig);
+if (typeof window !== "undefined") {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  auth = getAuth(app);
+  db = getFirestore(app);
+} else {
+  // Côté serveur, on initialise quand même pour éviter les erreurs de type
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  auth = getAuth(app);
+  db = getFirestore(app);
 }
 
-const app = getApps()[0];
-const auth = getAuth(app);
-const db = getFirestore(app);
-
 export { auth, db };
-
-console.log('✅ Firebase Client initialized');
+export default app;

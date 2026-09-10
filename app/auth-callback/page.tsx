@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
+import { auth } from '@/lib/firebase-client';
 import { useRouter } from 'next/navigation';
 
 export default function AuthCallback() {
@@ -46,3 +46,4 @@ export default function AuthCallback() {
 
   return <div className="text-center py-20">{status}</div>;
 }
+

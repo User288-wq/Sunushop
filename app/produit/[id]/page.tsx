@@ -17,6 +17,7 @@ interface Product {
   unit: string;
   discount?: number;
   isActive: boolean;
+  tags?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -248,4 +249,7 @@ export default function ProductPage() {
     </div>
   );
 }
+
+
+
 

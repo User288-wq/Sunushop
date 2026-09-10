@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
-import { auth } from '@/lib/firebase/client';
+import { db } from '@/lib/firebase-client';
+import { auth } from '@/lib/firebase-client';
 import { signOut } from 'firebase/auth';
 import Link from 'next/link';
 import { Package, LogOut } from 'lucide-react';
@@ -83,3 +83,4 @@ export default function LivreurLayout({ children }: { children: React.ReactNode 
     </div>
   );
 }
+

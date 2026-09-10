@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { sendSignInLinkToEmail } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
+import { auth } from '@/lib/firebase-client';
 import Link from 'next/link';
 
 export default function MagicLinkPage() {
@@ -66,3 +66,4 @@ export default function MagicLinkPage() {
     </div>
   );
 }
+

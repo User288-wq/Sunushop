@@ -116,9 +116,9 @@ export default function DashboardPage() {
 
         <div className="card p-6">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">📋 Commandes récentes</h2>
-          {stats?.recentOrders?.length > 0 ? (
+          {(stats?.recentOrders?.length ?? 0) > 0 ? (
             <div className="space-y-2">
-              {stats.recentOrders.map((order, index) => (
+              {stats?.recentOrders?.map((order, index) => (
                 <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <span className="font-medium">#{order.id}</span>
                   <span>{order.client?.name || "Client"}</span>
@@ -137,3 +137,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
+
