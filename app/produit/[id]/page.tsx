@@ -37,11 +37,14 @@ export default function ProductPage() {
 
     const fetchProduct = async () => {
       try {
-        const response = await fetch(`/api/products?id=${productId}`);
+        // On récupère TOUS les produits
+        const response = await fetch('/api/products');
         const data = await response.json();
 
-        if (response.ok && data.success && data.product) {
-          setProduct(data.product);
+        if (response.ok && data.success) {
+          // On cherche le produit qui correspond à l'ID dans l'URL
+          const found = data.products?.find((p: any) => p.id === productId);
+          setProduct(found || null);
         } else {
           setProduct(null);
         }
@@ -249,6 +252,7 @@ export default function ProductPage() {
     </div>
   );
 }
+
 
 
 
