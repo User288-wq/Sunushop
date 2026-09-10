@@ -62,12 +62,29 @@ export default function VendrePage() {
       result = result.filter(p => p.category === selectedCategory);
     }
     if (searchTerm.trim() !== "") {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(p =>
-        p.title.toLowerCase().includes(term) ||
-        p.description.toLowerCase().includes(term) ||
-        p.sellerName?.toLowerCase().includes(term)
-      );
+      // Normalise les accents : é → e, à → a, etc.
+      const normalize = (s: string) =>
+        (s || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+
+      const term = normalize(searchTerm);
+
+      result = result.filter(p => {
+        const haystack = [
+          p.title,
+          p.description,
+          p.sellerName,
+          p.category,
+          ...(Array.isArray(p.tags) ? p.tags : []),
+        ]
+          .filter(Boolean)
+          .map((v) => normalize(String(v)))
+          .join(" ");
+
+        return haystack.includes(term);
+      });
     }
     setFilteredProducts(result);
   }, [searchTerm, selectedCategory, products]);
@@ -163,3 +180,4 @@ export default function VendrePage() {
     </div>
   );
 }
+
