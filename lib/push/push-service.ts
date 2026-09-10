@@ -4,6 +4,7 @@ import webpush from "web-push";
 export interface PushSubscription {
   endpoint: string;
   keys: { p256dh: string; auth: string; };
+  userId?: string;
 }
 
 export interface PushNotification {
@@ -13,6 +14,7 @@ export interface PushNotification {
   badge?: string;
   url?: string;
   data?: Record<string, any>;
+  actions?: Array<{ action: string; title: string; icon?: string }>;
 }
 
 let vapidConfigured = false;
@@ -38,6 +40,31 @@ function ensureVapid(): boolean {
 }
 
 class PushService {
+  private subscriptions: PushSubscription[] = [];
+
+  // SYNCHRONE - utilisé par les routes sans await
+  saveSubscription(subscription: PushSubscription, userId?: string) {
+    const sub = { ...subscription, userId };
+    const existing = this.subscriptions.findIndex(s => s.endpoint === subscription.endpoint);
+    if (existing >= 0) this.subscriptions[existing] = sub;
+    else this.subscriptions.push(sub);
+    console.log("Subscription saved:", subscription.endpoint);
+    return { success: true };
+  }
+
+  // SYNCHRONE - retourne un tableau, pas une Promise
+  getSubscriptions(): PushSubscription[] {
+    return this.subscriptions;
+  }
+
+  // SYNCHRONE
+  removeSubscription(endpoint: string) {
+    this.subscriptions = this.subscriptions.filter(s => s.endpoint !== endpoint);
+    console.log("Subscription removed:", endpoint);
+    return { success: true };
+  }
+
+  // ASYNCHRONE - envoi à un abonné
   async send(subscription: PushSubscription, notification: PushNotification) {
     try {
       if (!ensureVapid()) return { success: false, error: "VAPID not configured" };
@@ -47,6 +74,7 @@ class PushService {
         icon: notification.icon || "/icon-192.png",
         url: notification.url || "/",
         data: notification.data || {},
+        actions: notification.actions || [],
       });
       await webpush.sendNotification(subscription as any, payload);
       return { success: true };
@@ -68,27 +96,25 @@ class PushService {
     return { sent, failed };
   }
 
-  async register(subscription: PushSubscription, userId?: string) {
-    console.log("Register push:", userId || "anonyme");
-    return { success: true };
-  }
-
-  async subscribe(subscription: PushSubscription, userId?: string) {
-    return this.register(subscription, userId);
-  }
-
-  async getSubscribers(): Promise<PushSubscription[]> {
-    return [];
-  }
-
-  async sendToAll(notification: PushNotification) {
-    const subs = await this.getSubscribers();
+  async broadcastNotification(notification: PushNotification) {
+    const subs = this.getSubscriptions();
     return this.sendToMultiple(subs, notification);
   }
 
+  async getSubscribers(): Promise<PushSubscription[]> {
+    return this.getSubscriptions();
+  }
+
+  async register(subscription: PushSubscription, userId?: string) {
+    return this.saveSubscription(subscription, userId);
+  }
+
   async unregister(endpoint: string) {
-    console.log("Unregister:", endpoint);
-    return { success: true };
+    return this.removeSubscription(endpoint);
+  }
+
+  async sendToAll(notification: PushNotification) {
+    return this.broadcastNotification(notification);
   }
 }
 
