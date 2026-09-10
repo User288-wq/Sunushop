@@ -1,3 +1,4 @@
+// components/ProductImage.tsx
 "use client";
 
 import Image from "next/image";
@@ -19,11 +20,11 @@ export default function ProductImage({
   height = 400,
 }: ProductImageProps) {
   const [imgSrc, setImgSrc] = useState(
-    src && src.length > 0 ? src : "/images/placeholder.png"
+    src && src.length > 0 ? src : "/images/placeholder.svg"
   );
 
   const handleError = () => {
-    setImgSrc("/images/placeholder.png");
+    setImgSrc("/images/placeholder.svg");
   };
 
   return (
@@ -35,6 +36,7 @@ export default function ProductImage({
       className={className}
       onError={handleError}
       loading="lazy"
+      unoptimized={imgSrc.includes("unsplash.com") || imgSrc.includes("picsum.photos")}
     />
   );
 }
