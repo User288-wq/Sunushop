@@ -18,24 +18,23 @@ export default function ProductImage({
   width = 400,
   height = 400,
 }: ProductImageProps) {
-  const [imgSrc, setImgSrc] = useState(src || "/images/placeholder.png");
-  const [hasError, setHasError] = useState(false);
+  const [imgSrc, setImgSrc] = useState(
+    src && src.length > 0 ? src : "/images/placeholder.png"
+  );
+
+  const handleError = () => {
+    setImgSrc("/images/placeholder.png");
+  };
 
   return (
     <Image
-      src={hasError ? "/images/placeholder.png" : imgSrc}
+      src={imgSrc}
       alt={alt}
       width={width}
       height={height}
       className={className}
-      onError={() => {
-        if (!hasError) {
-          setHasError(true);
-          setImgSrc("/images/placeholder.png");
-        }
-      }}
+      onError={handleError}
       loading="lazy"
-      unoptimized={imgSrc.includes("unsplash.com") || imgSrc.includes("picsum.photos")}
     />
   );
 }
