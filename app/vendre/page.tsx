@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import ProductImage from "@/components/ProductImage";
 
 interface Product {
   id: string;
@@ -163,11 +164,7 @@ export default function VendrePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product) => (
               <Link key={product.id} href={`/produit/${product.id}`} className="card p-4 hover:shadow-lg transition">
-                <img
-                  src={product.images?.[0] || "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop"}
-                  alt={product.title}
-                  className="w-full h-48 object-cover rounded-lg"
-                />
+                <ProductImage src={product.images?.[0]} alt={product.title} />
                 <div className="mt-4">
                   <h3 className="font-semibold text-gray-800 dark:text-white line-clamp-1">{product.title}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{product.sellerName} • {product.category}</p>
@@ -193,3 +190,5 @@ export default function VendrePage() {
 
 
 // Force rebuild 09/13/2026 12:02:58
+
+
