@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import ProductImage from "@/components/ProductImage";
 import { useRouter } from "next/navigation";
 
 interface Product {
@@ -165,11 +166,7 @@ export default function VendeurProduitsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((product) => (
               <div key={product.id} className="card p-4">
-                <img
-                  src={product.images[0] || "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop"}
-                  alt={product.title}
-                  className="w-full h-48 object-cover rounded-lg"
-                />
+                <ProductImage src={product.images[0] || "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop"} alt={product.title} />
                 <div className="mt-4">
                   <h3 className="font-semibold text-gray-800 dark:text-white">{product.title}</h3>
                   <p className="text-sm text-gray-500">{product.category}</p>
@@ -205,3 +202,5 @@ export default function VendeurProduitsPage() {
     </div>
   );
 }
+
+

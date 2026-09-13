@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import ProductImage from "@/components/ProductImage";
 import { useRouter } from "next/navigation";
 
 interface CartItem {
@@ -136,11 +137,7 @@ export default function PanierPage() {
         <div className="space-y-4">
           {cart.map((item) => (
             <div key={item.id} className="card p-4 flex items-center gap-4">
-              <img
-                src={item.image || "https://via.placeholder.com/80/22c55e/ffffff?text=Produit"}
-                alt={item.title}
-                className="w-20 h-20 object-cover rounded-lg"
-              />
+              <ProductImage src={item.image || "https://via.placeholder.com/80/22c55e/ffffff?text=Produit"} alt={item.title} className="w-20 h-20 object-cover rounded-lg" />
               <div className="flex-1">
                 <h3 className="font-medium text-gray-800 dark:text-white">{item.title}</h3>
                 <p className="text-green-600 font-bold">{item.price.toLocaleString()} FCFA</p>
@@ -187,3 +184,7 @@ export default function PanierPage() {
     </div>
   );
 }
+
+
+
+

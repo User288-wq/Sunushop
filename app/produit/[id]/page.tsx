@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import ProductImage from "@/components/ProductImage";
 
 interface Product {
   id: string;
@@ -129,11 +130,7 @@ export default function ProductPage() {
           {/* Galerie d'images */}
           <div className="card p-4">
             <div className="relative">
-              <img
-                src={images[currentImage] || product.images?.[0] || "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop"}
-                alt={product.title}
-                className="w-full h-96 object-cover rounded-lg"
-              />
+              <ProductImage src={images[currentImage] || product.images?.[0] || "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop"} alt={product.title} className="w-full h-96 object-cover rounded-lg" />
               {images.length > 1 && (
                 <div className="absolute inset-0 flex items-center justify-between px-4">
                   <button
@@ -161,7 +158,7 @@ export default function ProductPage() {
                       index === currentImage ? "border-green-500" : "border-gray-200 dark:border-gray-700"
                     }`}
                   >
-                    <img src={img} alt={`${product.title} - ${index + 1}`} className="w-full h-full object-cover" />
+                    <ProductImage src={img} alt={`${product.title} - ${index + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -252,6 +249,11 @@ export default function ProductPage() {
     </div>
   );
 }
+
+
+
+
+
 
 
 
