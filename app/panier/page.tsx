@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import ProductImage from "@/components/ProductImage";
+import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 
 interface CartItem {
@@ -16,47 +17,12 @@ interface CartItem {
 
 export default function PanierPage() {
   const router = useRouter();
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [total, setTotal] = useState(0);
+  const { cart, updateQuantity, removeFromCart, clearCart, getTotal } = useCart();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCart(savedCart);
-    calculateTotal(savedCart);
-  }, []);
-
-  const calculateTotal = (items: CartItem[]) => {
-    const sum = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    setTotal(sum);
-  };
-
-  const updateQuantity = (id: string, quantity: number) => {
-    if (quantity < 1) return;
-    const newCart = cart.map(item => 
-      item.id === id ? { ...item, quantity } : item
-    );
-    setCart(newCart);
-    localStorage.setItem('cart', JSON.stringify(newCart));
-    calculateTotal(newCart);
-    window.dispatchEvent(new Event('cartUpdated'));
-  };
-
-  const removeItem = (id: string) => {
-    const newCart = cart.filter(item => item.id !== id);
-    setCart(newCart);
-    localStorage.setItem('cart', JSON.stringify(newCart));
-    calculateTotal(newCart);
-    window.dispatchEvent(new Event('cartUpdated'));
-  };
-
-  const clearCart = () => {
-    setCart([]);
-    localStorage.setItem('cart', '[]');
-    setTotal(0);
-    window.dispatchEvent(new Event('cartUpdated'));
-  };
+  const total = getTotal();
+  const removeItem = removeFromCart;
 
   const handleCheckout = async () => {
     setLoading(true);
@@ -184,6 +150,7 @@ export default function PanierPage() {
     </div>
   );
 }
+
 
 
 

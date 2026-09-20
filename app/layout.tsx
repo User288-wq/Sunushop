@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -97,11 +98,13 @@ export default function RootLayout({
       <body className="theme-transition">
         <ThemeProvider>
           <WhatsAppProvider>
-            <ParticlesBackground />
-            <Navbar />
-            <main className="relative z-10 min-h-screen">
-              {children}
-            </main>
+            <CartProvider>
+              <ParticlesBackground />
+              <Navbar />
+              <main className="relative z-10 min-h-screen">
+                {children}
+              </main>
+            </CartProvider>
             <ScrollToTop />
             <Footer />
             <Analytics />
@@ -125,4 +128,6 @@ export default function RootLayout({
     </html>
   );
 }
+
+
 

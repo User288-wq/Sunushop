@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import ProductImage from "@/components/ProductImage";
+import { useCart } from "@/context/CartContext";
+import toast from "react-hot-toast";
 
 interface Product {
   id: string;
@@ -25,6 +27,7 @@ interface Product {
 
 export default function ProductPage() {
   const params = useParams();
+  const { addToCart } = useCart();
   const productId = params?.id as string || "";
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,11 +63,17 @@ export default function ProductPage() {
     fetchProduct();
   }, [productId]);
 
-  // Fonction pour ajouter au panier (simulée pour l'instant)
-  const addToCart = () => {
+  const handleAddToCart = () => {
     if (!product) return;
-    alert(`🛒 ${product.title} ajouté au panier !`);
-    // À connecter avec le vrai panier
+    addToCart({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      image: product.images?.[0],
+      sellerId: product.sellerId,
+      sellerName: product.sellerName,
+    });
+    toast.success(`🛒 ${product.title} ajouté au panier !`);
   };
 
   // Fonction pour contacter le vendeur
@@ -226,7 +235,7 @@ export default function ProductPage() {
 
             <div className="mt-6 flex flex-col gap-3">
               <button
-                onClick={addToCart}
+                onClick={handleAddToCart}
                 disabled={!product.isActive || product.stock <= 0}
                 className={`w-full px-4 py-3 rounded-lg text-white font-medium transition ${
                   !product.isActive || product.stock <= 0
@@ -249,6 +258,8 @@ export default function ProductPage() {
     </div>
   );
 }
+
+
 
 
 

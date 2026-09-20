@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useCart } from "@/context/CartContext";
 import { useState, useEffect } from "react";
 import { useWhatsApp } from "@/context/WhatsAppContext";
 import { useTheme } from "@/app/providers/ThemeProvider";
@@ -8,24 +9,8 @@ import { useTheme } from "@/app/providers/ThemeProvider";
 export function Navbar() {
   const { unreadCount, isConnected } = useWhatsApp();
   const { theme, toggleTheme } = useTheme();
-  const [cartCount, setCartCount] = useState(0);
-
-  // Récupérer le nombre d'articles dans le panier
-  useEffect(() => {
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartCount(cart.length);
-  }, []);
-
-  // Écouter les changements du panier
-  useEffect(() => {
-    const handleCartUpdate = () => {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      setCartCount(cart.length);
-    };
-
-    window.addEventListener('cartUpdated', handleCartUpdate);
-    return () => window.removeEventListener('cartUpdated', handleCartUpdate);
-  }, []);
+  const { getItemCount } = useCart();
+  const cartCount = getItemCount();
 
   const navItems = [
     { href: "/", label: "🏠 Accueil" },
@@ -99,6 +84,7 @@ export function Navbar() {
     </nav>
   );
 }
+
 
 
 
