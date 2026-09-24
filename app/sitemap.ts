@@ -1,5 +1,7 @@
 import { MetadataRoute } from "next";
 
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.sunu-shop.org";
 
@@ -7,7 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let products: any[] = [];
   try {
     const res = await fetch(`${baseUrl}/api/products`, {
-      cache: 'no-store'
+      next: { revalidate: 3600 }
     });
     const data = await res.json();
     if (data.success) {
@@ -53,3 +55,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [...staticUrls, ...productUrls];
 }
+
